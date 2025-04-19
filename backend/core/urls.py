@@ -1,0 +1,16 @@
+from django.urls import path, include
+from rest_framework import routers
+from .views_api import ClientViewSet, AuditLogViewSet, MeView, MeUpdateView, ChangePasswordView, CustomTokenObtainPairView, DeleteAvatarView
+
+router = routers.DefaultRouter()
+router.register(r'clients', ClientViewSet)
+router.register(r'auditlogs', AuditLogViewSet)
+
+urlpatterns = [
+    path('api/', include(router.urls)),
+    path('api/me/', MeView.as_view(), name='me'),
+    path('api/me/update/', MeUpdateView.as_view(), name='me-update'),
+    path('api/me/avatar/', DeleteAvatarView.as_view(), name='delete-avatar'),
+    path('api/change-password/', ChangePasswordView.as_view(), name='change-password'),
+    path('api/token/', CustomTokenObtainPairView.as_view(), name='custom_token_obtain_pair'),
+]

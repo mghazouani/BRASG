@@ -1,0 +1,3 @@
+sap_id,nom_client,telephone,langue,statut_general,notification_client,date_notification,a_demande_aide,nature_aide,app_installee,maj_app,commentaire_agent,segment_client,region,ville,canal_contact,relance_planifiee
+0001,Client Test 1,0600000001,francais,actif,TRUE,2025-01-01,FALSE,,,"","","","","","",FALSE
+0002,Client Test 2,0600000002,arabe,inactif,FALSE,,TRUE,Assistance requise,TRUE,à jour,"Problème de connexion","Premium","Casablanca","Anfa","Téléphone",TRUE
