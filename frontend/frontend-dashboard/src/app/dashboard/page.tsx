@@ -163,6 +163,9 @@ export default function DashboardPage() {
     console.log("[API] clients/?" + params.toString());
   }, [page, perPage, search, statut, region, langue, aide, app, ordering]);
 
+  // Helper pour calculer relance automatique : si app non installée ou date_notification vide
+  const shouldRelance = (c: Client): boolean => c.app_installee === false || !c.date_notification;
+
   // Fetch clients paginés et filtrés côté backend
   useEffect(() => {
     setLoading(true);
@@ -185,16 +188,13 @@ export default function DashboardPage() {
         setClients(fetched);
         setTotalClients(res.data.count || 0);
         setTotalPages(Math.ceil((res.data.count || 1) / perPage));
-        // Auto relance: si date_notification vide/ancienne, app non OK ou aide demandée
+        // Auto-relance: OR logic, update true/false
         fetched.forEach(c => {
-          const notif = !c.date_notification || new Date(c.date_notification) < new Date();
-          const appNotOK = c.app_installee === false || c.maj_app !== dashboardSettings.maj_app;
-          const aideDemandee = c.a_demande_aide === true;
-          if ((notif || appNotOK || aideDemandee) && !c.relance_planifiee) {
-            api.patch(`clients/${c.id}/`, { relance_planifiee: true })
-              .then(resp => {
-                setClients(prev => prev.map(p => p.id === resp.data.id ? resp.data : p));
-              })
+          const newRel = shouldRelance(c);
+          console.log('Relance debug:', c.id, c.relance_planifiee, shouldRelance(c));
+          if (newRel !== c.relance_planifiee) {
+            api.patch(`clients/${c.id}/`, { relance_planifiee: newRel })
+              .then(resp => setClients(prev => prev.map(p => p.id === resp.data.id ? resp.data : p)))
               .catch(err => console.error('Relance update error:', err));
           }
         });
@@ -357,8 +357,8 @@ export default function DashboardPage() {
           : (
               client.relance_planifiee
                 ? <Tooltip title="Relance planifiée"><CallIcon color="primary" /></Tooltip>
-                : null
-            );
+                : <Tooltip title="Pas de relance"><CallIcon className="text-gray-400" /></Tooltip>
+          );
       default:
         return client[field] as React.ReactNode;
     }
@@ -396,6 +396,19 @@ export default function DashboardPage() {
       // Remplace le client dans la liste
       setClients(clients => clients.map(c => c.id === data.id ? res.data : c));
       setEditClient(null);
+      // Vérifier relance après modification via modal
+      {
+        const updated = res.data;
+        const newRel = shouldRelance(updated);
+        if (newRel !== updated.relance_planifiee) {
+          try {
+            const relResp = await api.patch(`clients/${updated.id}/`, { relance_planifiee: newRel });
+            setClients(prev => prev.map(p => p.id === relResp.data.id ? relResp.data : p));
+          } catch (err) {
+            console.error('Modal relance update error:', err);
+          }
+        }
+      }
     } catch (err: any) {
       console.error("SaveEditClient error:", err.response?.data);
       setEditError(JSON.stringify(err.response?.data) || "Erreur lors de la modification");
@@ -443,7 +456,16 @@ export default function DashboardPage() {
       setClients(clients => clients.map(c => c.id === inlineEditId ? res.data : c));
       setInlineEditId(null);
       setInlineEditData({});
-
+      // Vérifier relance après modification inline
+      {
+        const updated = res.data;
+        const newRel = shouldRelance(updated);
+        if (newRel !== updated.relance_planifiee) {
+          api.patch(`clients/${updated.id}/`, { relance_planifiee: newRel })
+            .then(resp => setClients(prev => prev.map(p => p.id === resp.data.id ? resp.data : p)))
+            .catch(err => console.error('Inline relance update error:', err));
+        }
+      }
     } catch (err: any) {
       console.error("Inline edit error:", err.response?.data);
       setInlineEditError(JSON.stringify(err.response?.data) || "Erreur lors de la modification");
