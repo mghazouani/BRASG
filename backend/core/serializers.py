@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Client, AuditLog
+from .models import User, Client, AuditLog, DashboardConfig, Ville
 from django.core.exceptions import ValidationError
 from django.conf import settings
 from PIL import Image
@@ -104,6 +104,9 @@ class UserSerializer(serializers.ModelSerializer):
         ]
 
 class ClientSerializer(serializers.ModelSerializer):
+    # Ville référencée, affichée par son nom au lieu de son ID
+    ville = serializers.SlugRelatedField(slug_field='nom', queryset=Ville.objects.all())
+    region = serializers.CharField(read_only=True)
     class Meta:
         model = Client
         fields = '__all__'
@@ -111,4 +114,9 @@ class ClientSerializer(serializers.ModelSerializer):
 class AuditLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = AuditLog
+        fields = '__all__'
+
+class DashboardConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DashboardConfig
         fields = '__all__'

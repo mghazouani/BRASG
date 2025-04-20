@@ -1,8 +1,8 @@
 from django.shortcuts import render
 from rest_framework import viewsets, permissions, filters
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import User, Client, AuditLog
-from .serializers import UserSerializer, ClientSerializer, AuditLogSerializer
+from .models import User, Client, AuditLog, DashboardConfig
+from .serializers import UserSerializer, ClientSerializer, AuditLogSerializer, DashboardConfigSerializer
 from .views_api import ClientPageNumberPagination
 
 # Create your views here.
@@ -26,3 +26,11 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AuditLog.objects.all().order_by('-timestamp')
     serializer_class = AuditLogSerializer
     permission_classes = [permissions.IsAdminUser]
+
+class DashboardConfigViewSet(viewsets.ReadOnlyModelViewSet):
+    """Retourne la configuration paramétrable du dashboard"""
+    queryset = DashboardConfig.objects.all()
+    serializer_class = DashboardConfigSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    # Désactiver la pagination pour renvoyer la liste complète
+    pagination_class = None

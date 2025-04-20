@@ -6,20 +6,15 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/a
 export const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  headers: { "Content-Type": "application/json" },
 });
 
 // Ajoute dynamiquement le token JWT depuis le cookie (pour Next.js middleware compat)
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {
-      // Cherche le token dans les cookies
-      const match = document.cookie.match(/(?:^|; )token=([^;]*)/);
-      if (match) {
-        config.headers["Authorization"] = `Bearer ${match[1]}`;
-      }
+      const token = localStorage.getItem("token");
+      if (token) config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },

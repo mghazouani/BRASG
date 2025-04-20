@@ -41,8 +41,8 @@ class Client(models.Model):
     maj_app = models.CharField(max_length=100, null=True, blank=True)
     commentaire_agent = models.TextField(null=True, blank=True)
     segment_client = models.CharField(max_length=100, null=True, blank=True)
+    ville = models.ForeignKey('core.Ville', on_delete=models.SET_NULL, null=True, blank=True, related_name='clients')
     region = models.CharField(max_length=100, null=True, blank=True)
-    ville = models.CharField(max_length=100, null=True, blank=True)
     canal_contact = models.CharField(max_length=100, null=True, blank=True)
     date_creation = models.DateTimeField(auto_now_add=True)
     date_derniere_maj = models.DateTimeField(auto_now=True)
@@ -54,6 +54,11 @@ class Client(models.Model):
         return f"{self.sap_id} - {self.nom_client}"
 
     def save(self, *args, **kwargs):
+        # Synchroniser la région à partir de la ville sélectionnée
+        if self.ville:
+            self.region = self.ville.region
+        else:
+            self.region = None
         # --- RÈGLES MÉTIER AUTOMATIQUES ---
         actions = []
         # 1. Statut actif
@@ -109,6 +114,23 @@ class Client(models.Model):
             action='update' if self.pk else 'create',
             champs_changes={'actions_declenchees': actions}
         )
+
+class Ville(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    nom = models.CharField(max_length=255)
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+    pays = models.CharField(max_length=100)
+    iso2 = models.CharField(max_length=2)
+    region = models.CharField(max_length=100)
+
+    class Meta:
+        db_table = 'core_ville'
+        verbose_name = 'Ville'
+        verbose_name_plural = 'Villes'
+
+    def __str__(self):
+        return self.nom
 
 class ImportFichier(models.Model):
     fichier = models.FileField(upload_to='imports_clients/')
@@ -182,7 +204,6 @@ class ImportFichier(models.Model):
                             'maj_app': safe_str(row.get('maj_app', '')),
                             'commentaire_agent': safe_str(row.get('commentaire_agent', '')),
                             'segment_client': safe_str(row.get('segment_client', '')),
-                            'region': safe_str(row.get('region', '')),
                             'ville': safe_str(row.get('ville', '')),
                             'canal_contact': safe_str(row.get('canal_contact', '')),
                             'relance_planifiee': safe_bool(row.get('relance_planifiee', False)),
@@ -225,3 +246,40 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"{self.table_name} - {self.action} par {self.user} le {self.timestamp}"
+
+def default_dashboard_settings():
+    return {
+        "statut_general": [
+            {"value": "actif", "label": "Actif"},
+            {"value": "inactif", "label": "Inactif"},
+            {"value": "bloque", "label": "Bloqué"},
+        ],
+        "langue": [
+            {"value": "arabe", "label": "Arabe"},
+            {"value": "francais", "label": "Français"},
+        ],
+        "notification_client": [
+            {"value": True, "label": "Notifié"},
+            {"value": False, "label": "Non notifié"},
+        ],
+        "a_demande_aide": [
+            {"value": True, "label": "Oui"},
+            {"value": False, "label": "Non"},
+        ],
+        "app_installee": [
+            {"value": True, "label": "Oui"},
+            {"value": False, "label": "Non"},
+        ],
+        "maj_app": ""
+    }
+
+class DashboardConfig(models.Model):
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1)
+    settings = models.JSONField(default=default_dashboard_settings)
+
+    class Meta:
+        verbose_name = "Configuration du Dashboard"
+        verbose_name_plural = "Configurations du Dashboard"
+
+    def __str__(self):
+        return "Configuration du Dashboard"

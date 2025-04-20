@@ -22,6 +22,10 @@ import UserInfo from "../components/UserInfo";
 import UserMenu from "../components/UserMenu";
 import ThemeToggle from "../components/ThemeToggle";
 import PaginationBar from "../components/PaginationBar"; // Import PaginationBar
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
+import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
 
 interface Client {
   id: string;
@@ -44,17 +48,7 @@ interface Client {
   relance_planifiee: boolean;
 }
 
-const statutChoices = [
-  { value: "actif", label: "Actif" },
-  { value: "inactif", label: "Inactif" },
-  { value: "bloque", label: "Bloqué" },
-];
-const langueChoices = [
-  { value: "arabe", label: "Arabe" },
-  { value: "francais", label: "Français" },
-];
-
-function statutColor(statut: string) {
+const statutColor = (statut: string) => {
   switch (statut) {
     case "actif":
       return "success";
@@ -65,7 +59,7 @@ function statutColor(statut: string) {
     default:
       return "default";
   }
-}
+};
 
 export default function DashboardPage() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -83,6 +77,33 @@ export default function DashboardPage() {
   const [inlineEditLoading, setInlineEditLoading] = useState(false);
   const [inlineEditError, setInlineEditError] = useState<string | null>(null);
   const [totalClients, setTotalClients] = useState(0);
+
+  // Chargement dynamique des paramètres du Dashboard
+  const [dashboardSettings, setDashboardSettings] = useState<{
+    statut_general: { value: string; label: string }[];
+    langue: { value: string; label: string }[];
+    notification_client: { value: boolean; label: string }[];
+    a_demande_aide: { value: boolean; label: string }[];
+    app_installee: { value: boolean; label: string }[];
+    maj_app: string;
+  }>({
+    statut_general: [],
+    langue: [],
+    notification_client: [],
+    a_demande_aide: [],
+    app_installee: [],
+    maj_app: "",
+  });
+  useEffect(() => {
+    api.get('dashboard-configs/').then(res => {
+      if (res.data.length > 0) setDashboardSettings(res.data[0].settings);
+    }).catch(console.error);
+  }, []);
+  // Choix dynamiques depuis JSON
+  const statutChoices = dashboardSettings.statut_general;
+  const langueChoices = dashboardSettings.langue;
+  const aideChoices = dashboardSettings.a_demande_aide;
+  const appChoices = dashboardSettings.app_installee;
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -176,12 +197,32 @@ export default function DashboardPage() {
     setEditLoading(true);
     setEditError(null);
     try {
-      const res = await api.put(`clients/${data.id}/`, data);
+      // Générer un payload ne contenant que les champs modifiés
+      const original = clients.find(c => c.id === data.id);
+      const payload: Partial<Client> = {};
+      if (original) {
+        for (const key in data) {
+          if (key === 'id' || key === 'region') continue;
+          // @ts-ignore
+          if (data[key] !== (original as any)[key]) {
+            // @ts-ignore
+            payload[key] = data[key];
+          }
+        }
+      }
+      // Si aucun champ modifié, pas besoin d'Appel API
+      if (Object.keys(payload).length === 0) {
+        setEditLoading(false);
+        setEditClient(null);
+        return;
+      }
+      const res = await api.patch(`clients/${data.id}/`, payload);
       // Remplace le client dans la liste
       setClients(clients => clients.map(c => c.id === data.id ? res.data : c));
       setEditClient(null);
     } catch (err: any) {
-      setEditError(err.response?.data?.detail || "Erreur lors de la modification");
+      console.error("SaveEditClient error:", err.response?.data);
+      setEditError(JSON.stringify(err.response?.data) || "Erreur lors de la modification");
     } finally {
       setEditLoading(false);
     }
@@ -203,12 +244,33 @@ export default function DashboardPage() {
     setInlineEditLoading(true);
     setInlineEditError(null);
     try {
-      const res = await api.put(`clients/${inlineEditId}/`, inlineEditData);
+      // Générer un payload avec le champ inline modifié
+      const originalInline = clients.find(c => c.id === inlineEditId);
+      const payloadInline: Partial<Client> = {};
+      if (originalInline) {
+        for (const key in inlineEditData as any) {
+          if (key === 'id' || key === 'region') continue;
+          // @ts-ignore
+          if ((inlineEditData as any)[key] !== (originalInline as any)[key]) {
+            // @ts-ignore
+            payloadInline[key] = (inlineEditData as any)[key];
+          }
+        }
+      }
+      // Si seulement la région/id changés ou aucun changement, on skip
+      if (Object.keys(payloadInline).length === 0) {
+        setInlineEditLoading(false);
+        setInlineEditId(null);
+        return;
+      }
+      const res = await api.patch(`clients/${inlineEditId}/`, payloadInline);
       setClients(clients => clients.map(c => c.id === inlineEditId ? res.data : c));
       setInlineEditId(null);
       setInlineEditData({});
+
     } catch (err: any) {
-      setInlineEditError(err.response?.data?.detail || "Erreur lors de la modification");
+      console.error("Inline edit error:", err.response?.data);
+      setInlineEditError(JSON.stringify(err.response?.data) || "Erreur lors de la modification");
     } finally {
       setInlineEditLoading(false);
     }
@@ -219,7 +281,7 @@ export default function DashboardPage() {
       <div className="flex justify-between items-center w-full mb-6 fade-in">
         <div className="flex items-center gap-4">
           <UserMenu />
-          <h1 className="text-3xl font-bold text-blue-800 dark:text-blue-200">Liste des clients</h1>
+          <h1 className="text-3xl font-bold text-blue-800 dark:text-blue-200">Suivi des clients</h1>
           <UserInfo />
         </div>
         <div className="flex items-center gap-2">
@@ -339,6 +401,7 @@ export default function DashboardPage() {
                             select
                             value={inlineEditData.langue || ''}
                             onChange={e => setInlineEditData(d => ({ ...d, langue: e.target.value }))}
+                            className="capitalize"
                           >
                             {langueChoices.map(opt => (
                               <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
@@ -348,7 +411,15 @@ export default function DashboardPage() {
                       </td>
                       {/* AIDE */}
                       <td className="p-2">
-                        {client.a_demande_aide && (
+                        {inlineEditId === client.id ? (
+                          <FormControl component="fieldset" className="flex">
+                            <RadioGroup row name="a_demande_aide" value={`${inlineEditData.a_demande_aide}`} onChange={e => setInlineEditData(d => ({ ...d, a_demande_aide: e.target.value === 'true' }))}>
+                              {aideChoices.map(opt => (
+                                <FormControlLabel key={`${opt.value}`} value={`${opt.value}`} control={<Radio size="small" />} label={opt.label} />
+                              ))}
+                            </RadioGroup>
+                          </FormControl>
+                        ) : client.a_demande_aide && (
                           <Tooltip title={client.nature_aide || "Aide demandée"}>
                             <HelpIcon color="warning" />
                           </Tooltip>
@@ -356,7 +427,15 @@ export default function DashboardPage() {
                       </td>
                       {/* APP */}
                       <td className="p-2">
-                        {client.app_installee === false ? (
+                        {inlineEditId === client.id ? (
+                          <FormControl component="fieldset" className="flex">
+                            <RadioGroup row name="app_installee" value={`${inlineEditData.app_installee}`} onChange={e => setInlineEditData(d => ({ ...d, app_installee: e.target.value === 'true' }))}>
+                              {appChoices.map(opt => (
+                                <FormControlLabel key={`${opt.value}`} value={`${opt.value}`} control={<Radio size="small" />} label={opt.label} />
+                              ))}
+                            </RadioGroup>
+                          </FormControl>
+                        ) : client.app_installee === false ? (
                           <Tooltip title="Application non installée">
                             <SmartphoneIcon color="error" />
                           </Tooltip>
@@ -466,6 +545,7 @@ export default function DashboardPage() {
         <ClientEditForm
           open={!!editClient}
           client={editClient}
+          settings={dashboardSettings}
           onClose={() => setEditClient(null)}
           onSave={handleSaveEditClient}
           loading={editLoading}

@@ -21,7 +21,7 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
-from core.views import UserViewSet, ClientViewSet, AuditLogViewSet
+from core.views import UserViewSet, ClientViewSet, AuditLogViewSet, DashboardConfigViewSet
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -29,6 +29,7 @@ router = routers.DefaultRouter()
 router.register(r'users', UserViewSet)
 router.register(r'clients', ClientViewSet)
 router.register(r'auditlogs', AuditLogViewSet)
+router.register(r'dashboard-configs', DashboardConfigViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),

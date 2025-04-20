@@ -10,6 +10,10 @@ import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Alert from "@mui/material/Alert";
+import FormControl from "@mui/material/FormControl";
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
+import FormControlLabel from "@mui/material/FormControlLabel";
 
 export interface ClientEditFormProps {
   open: boolean;
@@ -18,20 +22,16 @@ export interface ClientEditFormProps {
   onSave: (data: any) => void;
   loading: boolean;
   error?: string | null;
+  settings: {
+    statut_general: { value: string; label: string }[];
+    langue: { value: string; label: string }[];
+    notification_client: { value: boolean; label: string }[];
+    a_demande_aide: { value: boolean; label: string }[];
+    app_installee: { value: boolean; label: string }[];
+  };
 }
 
-const statutChoices = [
-  { value: "actif", label: "Actif" },
-  { value: "inactif", label: "Inactif" },
-  { value: "bloque", label: "Bloqué" },
-];
-
-const langueChoices = [
-  { value: "arabe", label: "Arabe" },
-  { value: "francais", label: "Français" },
-];
-
-export default function ClientEditForm({ open, client, onClose, onSave, loading, error }: ClientEditFormProps) {
+export default function ClientEditForm({ open, client, onClose, onSave, loading, error, settings }: ClientEditFormProps) {
   const [form, setForm] = useState(client);
 
   React.useEffect(() => {
@@ -40,9 +40,10 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value, type, checked } = e.target;
+    const val = type === "checkbox" ? checked : type === "radio" ? (value === 'true') : value;
     setForm((prev: any) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: val,
     }));
   }
 
@@ -81,7 +82,7 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
             fullWidth
             required
           >
-            {statutChoices.map(opt => (
+            {settings.statut_general.map(opt => (
               <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
             ))}
           </TextField>
@@ -94,10 +95,22 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
             fullWidth
             required
           >
-            {langueChoices.map(opt => (
+            {settings.langue.map(opt => (
               <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
             ))}
           </TextField>
+          <FormControl component="fieldset" className="space-y-1">
+            <RadioGroup row name="notification_client" value={`${form.notification_client}`} onChange={handleChange}>
+              {settings.notification_client.map(opt => (
+                <FormControlLabel
+                  key={opt.value.toString()}
+                  value={`${opt.value}`}
+                  control={<Radio />}
+                  label={opt.label}
+                />
+              ))}
+            </RadioGroup>
+          </FormControl>
           <TextField
             label="Région"
             name="region"
@@ -121,6 +134,30 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
             multiline
             minRows={2}
           />
+          <FormControl component="fieldset" className="space-y-1">
+            <RadioGroup row name="a_demande_aide" value={`${form.a_demande_aide}`} onChange={handleChange}>
+              {settings.a_demande_aide.map(opt => (
+                <FormControlLabel
+                  key={opt.value.toString()}
+                  value={`${opt.value}`}
+                  control={<Radio />}
+                  label={opt.label}
+                />
+              ))}
+            </RadioGroup>
+          </FormControl>
+          <FormControl component="fieldset" className="space-y-1">
+            <RadioGroup row name="app_installee" value={`${form.app_installee}`} onChange={handleChange}>
+              {settings.app_installee.map(opt => (
+                <FormControlLabel
+                  key={opt.value.toString()}
+                  value={`${opt.value}`}
+                  control={<Radio />}
+                  label={opt.label}
+                />
+              ))}
+            </RadioGroup>
+          </FormControl>
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose} disabled={loading}>Annuler</Button>

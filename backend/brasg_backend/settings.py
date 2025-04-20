@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'django_filters',  # Add this line
     'core',
+    'villes',
     'corsheaders',
 ]
 
