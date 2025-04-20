@@ -40,7 +40,7 @@ class Client(models.Model):
     app_installee = models.BooleanField(null=True, blank=True)
     maj_app = models.CharField(max_length=100, null=True, blank=True)
     commentaire_agent = models.TextField(null=True, blank=True)
-    segment_client = models.CharField(max_length=100, null=True, blank=True)
+    segment_client = models.CharField('CMD/Jour', max_length=100, null=True, blank=True)
     ville = models.ForeignKey('core.Ville', on_delete=models.SET_NULL, null=True, blank=True, related_name='clients')
     region = models.CharField(max_length=100, null=True, blank=True)
     canal_contact = models.CharField(max_length=100, null=True, blank=True)

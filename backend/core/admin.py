@@ -38,6 +38,8 @@ class ClientForm(forms.ModelForm):
         # Boutons radio pour booléens
         for bf in ['notification_client', 'a_demande_aide', 'app_installee']:
             self.fields[bf].widget = forms.RadioSelect(choices=[(opt['value'], opt['label']) for opt in settings.get(bf, [])])
+        # Liste déroulante pour canal_contact depuis la config JSON
+        self.fields['canal_contact'].widget = forms.Select(choices=[(opt['value'], opt['label']) for opt in settings.get('canal_contact', [])])
 
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):

@@ -53,6 +53,7 @@ export interface ClientEditFormProps {
   settings: {
     statut_general: { value: string; label: string }[];
     langue: { value: string; label: string }[];
+    canal_contact: { value: string; label: string }[];
     notification_client: { value: boolean; label: string }[];
     a_demande_aide: { value: boolean; label: string }[];
     app_installee: { value: boolean; label: string }[];
@@ -70,11 +71,95 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
   // Chargement des villes pour dropdown
   React.useEffect(() => {
     api.get("villes/").then(res => {
-      // DRF pagine par défaut: extraire "results" ou utiliser directement le tableau
       const data = Array.isArray(res.data) ? res.data : res.data.results;
       setVilles(data as VilleType[]);
     });
   }, []);
+
+  // Ordre des champs pour la modale d'édition
+  const fieldsOrder: { key: keyof Client; label: string; type?: string; options?: any[] }[] = [
+    { key: 'nom_client', label: 'Nom' },
+    { key: 'telephone', label: 'Téléphone' },
+    { key: 'langue', label: 'Langue', type: 'select', options: settings.langue },
+    { key: 'statut_general', label: 'Statut', type: 'select', options: settings.statut_general },
+    { key: 'canal_contact', label: 'Canal contact', type: 'select', options: settings.canal_contact },
+    { key: 'notification_client', label: 'Notification client', type: 'radio', options: settings.notification_client },
+    { key: 'date_notification', label: 'Date notification', type: 'date' },
+    { key: 'app_installee', label: 'App installée', type: 'radio', options: settings.app_installee },
+    { key: 'maj_app', label: 'MàJ App' },
+    { key: 'a_demande_aide', label: 'Aide demandée', type: 'radio', options: settings.a_demande_aide },
+    { key: 'nature_aide', label: 'Nature aide' },
+    { key: 'commentaire_agent', label: 'Commentaire agent' },
+    { key: 'ville', label: 'Ville', type: 'autocomplete' },
+    { key: 'region', label: 'Région' },
+    { key: 'segment_client', label: 'CMD/Jour' },
+    { key: 'relance_planifiee', label: 'Relance planifiée', type: 'radio', options: [
+      { value: true, label: 'Oui' },
+      { value: false, label: 'Non' }
+    ] },
+  ];
+
+  // Rendu dynamique d'un champ
+  const renderField = (fc: typeof fieldsOrder[0]) => {
+    const { key, label, type, options } = fc;
+    const value = form[key] ?? '';
+    switch (type) {
+      case 'select':
+        return (
+          <TextField key={key} label={label} name={key} select value={value} onChange={handleChange} fullWidth>
+            {options!.map(opt => (
+              <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+            ))}
+          </TextField>
+        );
+      case 'radio':
+        return (
+          <FormControl key={key} component="fieldset">
+            <FormLabel component="legend">{label}</FormLabel>
+            <RadioGroup row name={key} value={`${value}`} onChange={handleChange}>
+              {options!.map(opt => (
+                <FormControlLabel key={opt.value.toString()} value={`${opt.value}`} control={<Radio />} label={opt.label} />
+              ))}
+            </RadioGroup>
+          </FormControl>
+        );
+      case 'date':
+        return <TextField key={key} label={label} name={key} type="date" value={value as string} onChange={handleChange} fullWidth />;
+      case 'autocomplete':
+        return (
+          <Autocomplete
+            key={key}
+            freeSolo
+            openOnFocus
+            options={villes.map(v => v.nom)}
+            value={form.ville || ''}
+            onChange={(_, val) => {
+              const sel = villes.find(v => v.nom === val);
+              setForm(prev => ({ ...prev, ville: val || '', region: sel?.region || '' }));
+            }}
+            onInputChange={(_, val) => setForm(prev => ({ ...prev, ville: val }))}
+            onBlur={() => {
+              const sel = villes.find(v => v.nom === form.ville);
+              setForm(prev => ({ ...prev, region: sel?.region || '' }));
+            }}
+            renderInput={params => <TextField {...params} label="Ville" fullWidth />}>
+          </Autocomplete>
+        );
+      default:
+        return (
+          <TextField
+            key={key}
+            label={label}
+            name={key}
+            value={value as string}
+            onChange={handleChange}
+            fullWidth
+            multiline={key === 'commentaire_agent'}
+            minRows={key === 'commentaire_agent' ? 2 : undefined}
+          />
+        );
+    }
+  };
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value, type, checked } = e.target;
@@ -93,133 +178,7 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
       <form onSubmit={handleSubmit}>
         <DialogContent className="flex flex-col gap-6 max-h-[60vh] overflow-y-auto">
           {error && <Alert severity="error">{error}</Alert>}
-          <TextField
-            label="Nom"
-            name="nom_client"
-            value={form.nom_client || ''}
-            onChange={handleChange}
-            fullWidth
-            required
-          />
-          <TextField
-            label="Téléphone"
-            name="telephone"
-            value={form.telephone || ''}
-            onChange={handleChange}
-            fullWidth
-          />
-          <TextField
-            label="Statut"
-            name="statut_general"
-            value={form.statut_general || ''}
-            onChange={handleChange}
-            select
-            fullWidth
-            required
-          >
-            {settings.statut_general.map(opt => (
-              <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            label="Langue"
-            name="langue"
-            value={form.langue || ''}
-            onChange={handleChange}
-            select
-            fullWidth
-            required
-          >
-            {settings.langue.map(opt => (
-              <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-            ))}
-          </TextField>
-          <FormControl component="fieldset" className="space-y-1">
-            <RadioGroup row name="notification_client" value={`${form.notification_client}`} onChange={handleChange}>
-              {settings.notification_client.map(opt => (
-                <FormControlLabel
-                  key={opt.value.toString()}
-                  value={`${opt.value}`}
-                  control={<Radio />}
-                  label={opt.label}
-                />
-              ))}
-            </RadioGroup>
-          </FormControl>
-          <TextField
-            label="Région"
-            name="region"
-            value={form.region || ''}
-            fullWidth
-            disabled
-          />
-          <Autocomplete
-            freeSolo
-            openOnFocus
-            autoHighlight
-            ListboxProps={{ style: { maxHeight: '20rem' } }}
-            options={villes.map(v => v.nom)}
-            value={form.ville || ''}
-            onChange={(_, value) => {
-              const sel = villes.find(v => v.nom === value);
-              setForm(prev => ({ ...prev, ville: value || '', region: sel?.region || '' }));
-            }}
-            onInputChange={(_, value) => {
-              setForm(prev => ({ ...prev, ville: value }));
-            }}
-            onBlur={() => {
-              const sel = villes.find(v => v.nom === form.ville);
-              if (sel) {
-                setForm(prev => ({ ...prev, region: sel.region }));
-              } else {
-                setForm(prev => ({ ...prev, region: '' }));
-              }
-            }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Ville"
-                fullWidth
-                error={!!form.ville && !villes.some(v => v.nom === form.ville)}
-                helperText={form.ville && !villes.some(v => v.nom === form.ville) ? "Ville inconnue" : ""}
-              />
-            )}
-          />
-          <TextField
-            label="Commentaire agent"
-            name="commentaire_agent"
-            value={form.commentaire_agent || ''}
-            onChange={handleChange}
-            fullWidth
-            multiline
-            minRows={2}
-          />
-          <FormControl component="fieldset" className="space-y-1">
-            <FormLabel component="legend">Aide demandée</FormLabel>
-            <RadioGroup row name="a_demande_aide" value={`${form.a_demande_aide}`} onChange={handleChange}>
-              {settings.a_demande_aide.map(opt => (
-                <FormControlLabel
-                  key={opt.value.toString()}
-                  value={`${opt.value}`}
-                  control={<Radio />}
-                  label={opt.label}
-                />
-              ))}
-            </RadioGroup>
-          </FormControl>
-          <FormControl component="fieldset" className="space-y-1">
-            <FormLabel component="legend">App installée</FormLabel>
-            <RadioGroup row name="app_installee" value={`${form.app_installee}`} onChange={handleChange}>
-              {settings.app_installee.map(opt => (
-                <FormControlLabel
-                  key={opt.value.toString()}
-                  value={`${opt.value}`}
-                  control={<Radio />}
-                  label={opt.label}
-                />
-              ))}
-            </RadioGroup>
-          </FormControl>
+          {fieldsOrder.map(fc => renderField(fc))}
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose} disabled={loading}>Annuler</Button>

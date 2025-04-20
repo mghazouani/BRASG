@@ -93,6 +93,7 @@ export default function DashboardPage() {
   const [dashboardSettings, setDashboardSettings] = useState<{
     statut_general: { value: string; label: string }[];
     langue: { value: string; label: string }[];
+    canal_contact: { value: string; label: string }[];
     notification_client: { value: boolean; label: string }[];
     a_demande_aide: { value: boolean; label: string }[];
     app_installee: { value: boolean; label: string }[];
@@ -100,6 +101,7 @@ export default function DashboardPage() {
   }>({
     statut_general: [],
     langue: [],
+    canal_contact: [],
     notification_client: [],
     a_demande_aide: [],
     app_installee: [],
@@ -210,6 +212,128 @@ export default function DashboardPage() {
   // Liste unique des régions pour le filtre (à calculer sur tous les clients si besoin)
   // Ici, on laisse tel quel pour la démo, mais en prod il faudrait une API dédiée ou un champ distinct
   const regions = useMemo(() => Array.from(new Set(clients.map(c => c.region).filter(Boolean) as string[])), [clients]);
+
+  // Ordre des champs et logique d'affichage/édition
+  const fieldsOrder: { key: keyof Client; label: string }[] = [
+    { key: 'nom_client', label: 'Nom' },
+    { key: 'sap_id', label: 'SAP ID' },
+    { key: 'telephone', label: 'Téléphone' },
+    { key: 'langue', label: 'Langue' },
+    { key: 'statut_general', label: 'Statut' },
+    { key: 'canal_contact', label: 'Canal contact' },
+    { key: 'notification_client', label: 'Notification client' },
+    { key: 'date_notification', label: 'Date notification' },
+    { key: 'app_installee', label: 'App installée' },
+    { key: 'maj_app', label: 'MàJ App' },
+    { key: 'a_demande_aide', label: 'Aide' },
+    { key: 'nature_aide', label: 'Nature aide' },
+    { key: 'commentaire_agent', label: 'Commentaire' },
+    { key: 'ville', label: 'Ville' },
+    { key: 'region', label: 'Région' },
+    { key: 'segment_client', label: 'CMD/Jour' },
+    { key: 'relance_planifiee', label: 'Relance' },
+  ];
+
+  const renderCell = (client: Client, field: keyof Client): React.ReactNode => {
+    const isEditing = inlineEditId === client.id;
+    switch (field) {
+      case 'nom_client': return client.nom_client;
+      case 'sap_id': return client.sap_id;
+      case 'telephone':
+        return isEditing
+          ? <TextField size="small" value={inlineEditData.telephone || ''} onChange={e => setInlineEditData(d => ({ ...d, telephone: e.target.value }))} />
+          : client.telephone;
+      case 'langue':
+        return isEditing
+          ? <TextField size="small" select value={inlineEditData.langue || ''} onChange={e => setInlineEditData(d => ({ ...d, langue: e.target.value }))}>
+              {langueChoices.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
+            </TextField>
+          : client.langue;
+      case 'statut_general':
+        return isEditing
+          ? <TextField size="small" select value={inlineEditData.statut_general || ''} onChange={e => setInlineEditData(d => ({ ...d, statut_general: e.target.value }))}>
+              {statutChoices.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
+            </TextField>
+          : <Chip label={client.statut_general} size="small" color={statutColor(client.statut_general)} />;
+      case 'canal_contact':
+        return isEditing
+          ? (
+              <TextField size="small" select value={inlineEditData.canal_contact || ''} onChange={e => setInlineEditData(d => ({ ...d, canal_contact: e.target.value }))}>
+                {dashboardSettings.canal_contact.map(opt => (
+                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                ))}
+              </TextField>
+            )
+          : client.canal_contact || <span className="text-gray-400">—</span>;
+      case 'notification_client':
+        return isEditing
+          ? <TextField size="small" select value={`${inlineEditData.notification_client}`} onChange={e => setInlineEditData(d => ({ ...d, notification_client: e.target.value === 'true' }))}>
+              {dashboardSettings.notification_client.map(opt => <MenuItem key={`${opt.value}`} value={`${opt.value}`}>{opt.label}</MenuItem>)}
+            </TextField>
+          : (client.notification_client ? "Oui" : "Non");
+      case 'date_notification':
+        return isEditing
+          ? <TextField size="small" type="date" value={inlineEditData.date_notification || ''} onChange={e => setInlineEditData(d => ({ ...d, date_notification: e.target.value }))} />
+          : client.date_notification || <span className="text-gray-400">—</span>;
+      case 'app_installee':
+        return isEditing
+          ? <TextField size="small" select value={`${inlineEditData.app_installee}`} onChange={e => setInlineEditData(d => ({ ...d, app_installee: e.target.value === 'true' }))}>
+              {dashboardSettings.app_installee.map(opt => <MenuItem key={`${opt.value}`} value={`${opt.value}`}>{opt.label}</MenuItem>)}
+            </TextField>
+          : (client.app_installee === false
+              ? <Tooltip title="App non installée"><SmartphoneIcon color="error" /></Tooltip>
+              : client.maj_app && client.maj_app.toLowerCase() !== "à jour"
+                ? <Tooltip title={`App non à jour (${client.maj_app})`}><SmartphoneIcon color="warning" /></Tooltip>
+                : <span className="text-green-600">✔</span>);
+      case 'maj_app':
+        return isEditing
+          ? <TextField size="small" value={inlineEditData.maj_app || ''} onChange={e => setInlineEditData(d => ({ ...d, maj_app: e.target.value }))} />
+          : client.maj_app || <span className="text-gray-400">—</span>;
+      case 'a_demande_aide':
+        return isEditing
+          ? <RadioGroup row name="a_demande_aide" value={`${inlineEditData.a_demande_aide}`} onChange={e => setInlineEditData(d => ({ ...d, a_demande_aide: e.target.value === 'true' }))}>
+              {aideChoices.map(opt => <FormControlLabel key={`${opt.value}`} value={`${opt.value}`} control={<Radio size="small" />} label={opt.label} />)}
+            </RadioGroup>
+          : (client.a_demande_aide && <Tooltip title={client.nature_aide || "Aide demandée"}><HelpIcon color="warning" /></Tooltip>);
+      case 'nature_aide':
+        return isEditing
+          ? <TextField size="small" value={inlineEditData.nature_aide || ''} onChange={e => setInlineEditData(d => ({ ...d, nature_aide: e.target.value }))} />
+          : client.nature_aide || <span className="text-gray-400">—</span>;
+      case 'commentaire_agent':
+        return isEditing
+          ? <TextField size="small" value={inlineEditData.commentaire_agent || ''} onChange={e => setInlineEditData(d => ({ ...d, commentaire_agent: e.target.value }))} />
+          : (client.commentaire_agent
+              ? (
+                  <Tooltip title={client.commentaire_agent}>
+                    <span>
+                      {client.commentaire_agent.slice(0,20)}{client.commentaire_agent.length > 20 ? '...' : ''}
+                    </span>
+                  </Tooltip>
+                )
+              : <span className="text-gray-400">—</span>
+            );
+      case 'ville':
+        return isEditing
+          ? <Autocomplete freeSolo options={villes.map(v=>v.nom)} value={inlineEditData.ville||''} onChange={(_,val)=>{const sel=villes.find(v=>v.nom===val);setInlineEditData(d=>({...d,ville:val||'',region:sel?.region||''}));}} renderInput={params=><TextField {...params} size="small" />} />
+          : client.ville || <span className="text-gray-400">—</span>;
+      case 'region':
+        return isEditing
+          ? <TextField size="small" value={inlineEditData.region||''} disabled />
+          : client.region || <span className="text-gray-400">—</span>;
+      case 'segment_client':
+        return isEditing
+          ? <TextField size="small" value={inlineEditData.segment_client||''} onChange={e=>setInlineEditData(d=>({...d,segment_client:e.target.value}))} />
+          : client.segment_client || <span className="text-gray-400">—</span>;
+      case 'relance_planifiee':
+        return isEditing
+          ? <TextField size="small" select value={`${inlineEditData.relance_planifiee}`} onChange={e=>setInlineEditData(d=>({...d,relance_planifiee:e.target.value==='true'}))}>
+              <MenuItem value="true">Oui</MenuItem><MenuItem value="false">Non</MenuItem>
+            </TextField>
+          : (client.relance_planifiee ? "Oui" : "Non");
+      default:
+        return client[field] as React.ReactNode;
+    }
+  };
 
   // Calcul de la plage affichée
   const rangeStart = totalClients === 0 ? 0 : (page - 1) * perPage + 1;
@@ -351,163 +475,27 @@ export default function DashboardPage() {
               <table className="min-w-full w-full text-sm table-auto">
                 <thead>
                   <tr className="bg-blue-50">
-                    <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('nom_client')}>
-                      Nom {ordering === 'nom_client' ? '▲' : ordering === '-nom_client' ? '▼' : ''}
-                    </th>
-                    <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('statut_general')}>
-                      Statut {ordering === 'statut_general' ? '▲' : ordering === '-statut_general' ? '▼' : ''}
-                    </th>
-                    <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('telephone')}>
-                      Téléphone {ordering === 'telephone' ? '▲' : ordering === '-telephone' ? '▼' : ''}
-                    </th>
-                    <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('region')}>
-                      Région {ordering === 'region' ? '▲' : ordering === '-region' ? '▼' : ''}
-                    </th>
-                    <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('ville')}>
-                      Ville {ordering === 'ville' ? '▲' : ordering === '-ville' ? '▼' : ''}
-                    </th>
-                    <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('langue')}>
-                      Langue {ordering === 'langue' ? '▲' : ordering === '-langue' ? '▼' : ''}
-                    </th>
-                    <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('a_demande_aide')}>
-                      Aide {ordering === 'a_demande_aide' ? '▲' : ordering === '-a_demande_aide' ? '▼' : ''}
-                    </th>
-                    <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('app_installee')}>
-                      App {ordering === 'app_installee' ? '▲' : ordering === '-app_installee' ? '▼' : ''}
-                    </th>
-                    <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('commentaire_agent')}>
-                      Commentaire {ordering === 'commentaire_agent' ? '▲' : ordering === '-commentaire_agent' ? '▼' : ''}
-                    </th>
+                    {fieldsOrder.map(col => (
+                      <th
+                        key={col.key}
+                        className="p-2 text-left cursor-pointer"
+                        onClick={() => handleSort(col.key)}
+                      >
+                        {col.label}
+                        {ordering.replace('-', '') === col.key && (
+                          ordering.startsWith('-') ? ' ▼' : ' ▲'
+                        )}
+                      </th>
+                    ))}
                     <th className="p-2 text-left">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {clients.map((client) => (
+                  {clients.map(client => (
                     <tr key={client.id} className="border-b hover:bg-blue-50">
-                      {/* NOM */}
-                      <td className="p-2 font-semibold text-blue-700">
-                        {inlineEditId === client.id ? (
-                          <TextField size="small" value={inlineEditData.nom_client || ''} onChange={e => setInlineEditData(d => ({ ...d, nom_client: e.target.value }))} />
-                        ) : client.nom_client}
-                      </td>
-                      {/* STATUT */}
-                      <td className="p-2">
-                        {inlineEditId === client.id ? (
-                          <TextField
-                            size="small"
-                            select
-                            value={inlineEditData.statut_general || ''}
-                            onChange={e => setInlineEditData(d => ({ ...d, statut_general: e.target.value }))}
-                          >
-                            {statutChoices.map(opt => (
-                              <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                            ))}
-                          </TextField>
-                        ) : (
-                          <Chip label={client.statut_general} size="small" color={statutColor(client.statut_general)} />
-                        )}
-                      </td>
-                      {/* TELEPHONE */}
-                      <td className="p-2">
-                        {inlineEditId === client.id ? (
-                          <TextField size="small" value={inlineEditData.telephone || ''} onChange={e => setInlineEditData(d => ({ ...d, telephone: e.target.value }))} />
-                        ) : client.telephone}
-                      </td>
-                      {/* REGION */}
-                      <td className="p-2">
-                        {inlineEditId === client.id ? (
-                          <TextField size="small" value={inlineEditData.region || ''} disabled />
-                        ) : (client.region || <span className="text-gray-400">—</span>)}
-                      </td>
-                      {/* VILLE */}
-                      <td className="p-2">
-                        {inlineEditId === client.id ? (
-                          <Autocomplete
-                            freeSolo openOnFocus autoHighlight
-                            ListboxProps={{ style: { maxHeight: '20rem' } }}
-                            options={villes.map(v => v.nom)}
-                            value={inlineEditData.ville || ''}
-                            size="small"
-                            onChange={(_, value) => {
-                              const sel = villes.find(v => v.nom === value);
-                              setInlineEditData(d => ({ ...d, ville: value || '', region: sel?.region || '' }));
-                            }}
-                            onInputChange={(_, value) => setInlineEditData(d => ({ ...d, ville: value }))}
-                            onBlur={() => {
-                              const sel = villes.find(v => v.nom === inlineEditData.ville);
-                              if (sel) setInlineEditData(d => ({ ...d, region: sel.region }));
-                            }}
-                            renderInput={(params) => <TextField {...params} size="small" />}
-                          />
-                        ) : (client.ville || <span className="text-gray-400">—</span>)}
-                      </td>
-                      {/* LANGUE */}
-                      <td className="p-2 capitalize">
-                        {inlineEditId === client.id ? (
-                          <TextField
-                            size="small"
-                            select
-                            value={inlineEditData.langue || ''}
-                            onChange={e => setInlineEditData(d => ({ ...d, langue: e.target.value }))}
-                            className="capitalize"
-                          >
-                            {langueChoices.map(opt => (
-                              <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                            ))}
-                          </TextField>
-                        ) : client.langue}
-                      </td>
-                      {/* AIDE */}
-                      <td className="p-2">
-                        {inlineEditId === client.id ? (
-                          <FormControl component="fieldset" className="flex">
-                            <RadioGroup row name="a_demande_aide" value={`${inlineEditData.a_demande_aide}`} onChange={e => setInlineEditData(d => ({ ...d, a_demande_aide: e.target.value === 'true' }))}>
-                              {aideChoices.map(opt => (
-                                <FormControlLabel key={`${opt.value}`} value={`${opt.value}`} control={<Radio size="small" />} label={opt.label} />
-                              ))}
-                            </RadioGroup>
-                          </FormControl>
-                        ) : client.a_demande_aide && (
-                          <Tooltip title={client.nature_aide || "Aide demandée"}>
-                            <HelpIcon color="warning" />
-                          </Tooltip>
-                        )}
-                      </td>
-                      {/* APP */}
-                      <td className="p-2">
-                        {inlineEditId === client.id ? (
-                          <FormControl component="fieldset" className="flex">
-                            <RadioGroup row name="app_installee" value={`${inlineEditData.app_installee}`} onChange={e => setInlineEditData(d => ({ ...d, app_installee: e.target.value === 'true' }))}>
-                              {appChoices.map(opt => (
-                                <FormControlLabel key={`${opt.value}`} value={`${opt.value}`} control={<Radio size="small" />} label={opt.label} />
-                              ))}
-                            </RadioGroup>
-                          </FormControl>
-                        ) : client.app_installee === false ? (
-                          <Tooltip title="Application non installée">
-                            <SmartphoneIcon color="error" />
-                          </Tooltip>
-                        ) : client.maj_app && client.maj_app.toLowerCase() !== "à jour" ? (
-                          <Tooltip title={`App non à jour (${client.maj_app})`}>
-                            <SmartphoneIcon color="warning" />
-                          </Tooltip>
-                        ) : (
-                          <span className="text-green-600">✔</span>
-                        )}
-                      </td>
-                      {/* COMMENTAIRE AGENT */}
-                      <td className="p-2 max-w-xs truncate">
-                        {inlineEditId === client.id ? (
-                          <TextField size="small" value={inlineEditData.commentaire_agent || ''} onChange={e => setInlineEditData(d => ({ ...d, commentaire_agent: e.target.value }))} />
-                        ) : client.commentaire_agent ? (
-                          <Tooltip title={client.commentaire_agent}>
-                            <span>{client.commentaire_agent.slice(0, 20)}{client.commentaire_agent.length > 20 ? "..." : ""}</span>
-                          </Tooltip>
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </td>
-                      {/* ACTIONS */}
+                      {fieldsOrder.map(col => (
+                        <td key={col.key} className="p-2">{renderCell(client, col.key)}</td>
+                      ))}
                       <td className="p-2 flex gap-1">
                         {inlineEditId === client.id ? (
                           <>
@@ -581,7 +569,7 @@ export default function DashboardPage() {
               <div><b>App installée:</b> {selectedClient.app_installee === false ? "Non" : selectedClient.app_installee === true ? "Oui" : <span className="text-gray-400">—</span>}</div>
               <div><b>MàJ app:</b> {selectedClient.maj_app || <span className="text-gray-400">—</span>}</div>
               <div><b>Commentaire agent:</b> {selectedClient.commentaire_agent || <span className="text-gray-400">—</span>}</div>
-              <div><b>Segment client:</b> {selectedClient.segment_client || <span className="text-gray-400">—</span>}</div>
+              <div><b>CMD/Jour:</b> {selectedClient.segment_client || <span className="text-gray-400">—</span>}</div>
               <div><b>Canal contact:</b> {selectedClient.canal_contact || <span className="text-gray-400">—</span>}</div>
               <div><b>Relance planifiée:</b> {selectedClient.relance_planifiee ? "Oui" : "Non"}</div>
             </div>

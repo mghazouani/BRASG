@@ -20,7 +20,12 @@ class ClientViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['statut_general', 'region', 'langue', 'a_demande_aide', 'app_installee']
     search_fields = ['nom_client', 'sap_id', 'telephone']
-    ordering_fields = ['date_creation', 'nom_client', 'statut_general']
+    ordering_fields = [
+        'date_creation', 'nom_client', 'sap_id', 'telephone', 'langue', 'statut_general',
+        'canal_contact', 'notification_client', 'date_notification', 'app_installee', 'maj_app',
+        'a_demande_aide', 'nature_aide', 'commentaire_agent', 'ville', 'region', 'segment_client',
+        'relance_planifiee'
+    ]
 
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AuditLog.objects.all().order_by('-timestamp')
