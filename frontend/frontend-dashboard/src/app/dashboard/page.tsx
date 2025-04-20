@@ -163,8 +163,27 @@ export default function DashboardPage() {
     console.log("[API] clients/?" + params.toString());
   }, [page, perPage, search, statut, region, langue, aide, app, ordering]);
 
-  // Helper pour calculer relance automatique : si app non installée ou date_notification vide
-  const shouldRelance = (c: Client): boolean => c.app_installee === false || !c.date_notification;
+  // Helper pour calculer relance automatique : si app non installée, date_notification vide, antérieure à aujourd’hui ou aide demandée
+  const shouldRelance = (c: Client): boolean => {
+    // Si l'application n'est pas installée
+    if (c.app_installee === false) {
+      return true;
+    }
+    // Si la date de notification est vide
+    if (!c.date_notification) {
+      return true;
+    }
+    // Si la date de notification est antérieure à aujourd’hui
+    if (c.date_notification < new Date().toISOString().slice(0,10)) {
+      return true;
+    }
+    // Si l'aide a été demandée
+    if (c.a_demande_aide === true) {
+      return true;
+    }
+    // Sinon, pas de relance
+    return false;
+  };
 
   // Fetch clients paginés et filtrés côté backend
   useEffect(() => {
