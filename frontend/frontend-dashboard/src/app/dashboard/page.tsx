@@ -8,9 +8,8 @@ import Alert from "@mui/material/Alert";
 import Chip from "@mui/material/Chip";
 import Tooltip from "@mui/material/Tooltip";
 import HelpIcon from "@mui/icons-material/Help";
-import SmartphoneIcon from "@mui/icons-material/Smartphone";
+import CallIcon from "@mui/icons-material/Call";
 import IconButton from "@mui/material/IconButton";
-import InfoIcon from "@mui/icons-material/InfoOutlined";
 import EditIcon from "@mui/icons-material/EditOutlined";
 import SaveIcon from "@mui/icons-material/CheckCircleOutline";
 import CancelIcon from "@mui/icons-material/CancelOutlined";
@@ -27,6 +26,8 @@ import RadioGroup from "@mui/material/RadioGroup";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Autocomplete from "@mui/material/Autocomplete";
+import SmartphoneIcon from "@mui/icons-material/Smartphone";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 
 interface Client {
   id: string;
@@ -180,9 +181,23 @@ export default function DashboardPage() {
     api.get(`clients/?${params.toString()}`)
       .then((res) => {
         console.log('[API][res.data]', res.data); // LOG du retour API complet
-        setClients(res.data.results);
+        const fetched: Client[] = res.data.results;
+        setClients(fetched);
         setTotalClients(res.data.count || 0);
         setTotalPages(Math.ceil((res.data.count || 1) / perPage));
+        // Auto relance: si date_notification vide/ancienne, app non OK ou aide demandée
+        fetched.forEach(c => {
+          const notif = !c.date_notification || new Date(c.date_notification) < new Date();
+          const appNotOK = c.app_installee === false || c.maj_app !== dashboardSettings.maj_app;
+          const aideDemandee = c.a_demande_aide === true;
+          if ((notif || appNotOK || aideDemandee) && !c.relance_planifiee) {
+            api.patch(`clients/${c.id}/`, { relance_planifiee: true })
+              .then(resp => {
+                setClients(prev => prev.map(p => p.id === resp.data.id ? resp.data : p));
+              })
+              .catch(err => console.error('Relance update error:', err));
+          }
+        });
       })
       .catch((err) => setError(err.response?.data?.detail || "Erreur API"))
       .finally(() => setLoading(false));
@@ -289,7 +304,7 @@ export default function DashboardPage() {
                 ? <Tooltip title="App non installée"><SmartphoneIcon color="error" /></Tooltip>
                 : client.maj_app !== dashboardSettings.maj_app
                   ? <Tooltip title={`App non à jour (installé: ${client.maj_app || 'inconnu'} / dernière: ${dashboardSettings.maj_app})`}><SmartphoneIcon color="warning" /></Tooltip>
-                  : <Tooltip title={`Dernière mise à jour : ${dashboardSettings.maj_app}`}><span className="text-green-600">✔</span></Tooltip>
+                  : <Tooltip title={`Dernière mise à jour : ${dashboardSettings.maj_app}`}><SmartphoneIcon color="success" /></Tooltip>
             );
       case 'maj_app':
         return isEditing
@@ -300,7 +315,11 @@ export default function DashboardPage() {
           ? <RadioGroup row name="a_demande_aide" value={`${inlineEditData.a_demande_aide}`} onChange={e => setInlineEditData(d => ({ ...d, a_demande_aide: e.target.value === 'true' }))}>
               {aideChoices.map(opt => <FormControlLabel key={`${opt.value}`} value={`${opt.value}`} control={<Radio size="small" />} label={opt.label} />)}
             </RadioGroup>
-          : (client.a_demande_aide && <Tooltip title={client.nature_aide || "Aide demandée"}><HelpIcon color="warning" /></Tooltip>);
+          : (
+              client.a_demande_aide
+                ? <Tooltip title={client.nature_aide || "Aide demandée"}><HelpIcon className="text-yellow-500" /></Tooltip>
+                : null
+            );
       case 'nature_aide':
         return isEditing
           ? <TextField size="small" value={inlineEditData.nature_aide || ''} onChange={e => setInlineEditData(d => ({ ...d, nature_aide: e.target.value }))} />
@@ -332,10 +351,14 @@ export default function DashboardPage() {
           : client.segment_client || <span className="text-gray-400">—</span>;
       case 'relance_planifiee':
         return isEditing
-          ? <TextField size="small" select value={`${inlineEditData.relance_planifiee}`} onChange={e=>setInlineEditData(d=>({...d,relance_planifiee:e.target.value==='true'}))}>
+          ? <TextField size="small" select value={`${inlineEditData.relance_planifiee}`} onChange={e => setInlineEditData(d => ({ ...d, relance_planifiee: e.target.value==='true' }))}>
               <MenuItem value="true">Oui</MenuItem><MenuItem value="false">Non</MenuItem>
             </TextField>
-          : (client.relance_planifiee ? "Oui" : "Non");
+          : (
+              client.relance_planifiee
+                ? <Tooltip title="Relance planifiée"><CallIcon color="primary" /></Tooltip>
+                : null
+            );
       default:
         return client[field] as React.ReactNode;
     }
@@ -524,7 +547,7 @@ export default function DashboardPage() {
                           <>
                             <Tooltip title="Détails">
                               <IconButton size="small" onClick={() => setSelectedClient(client)}>
-                                <InfoIcon fontSize="small" />
+                                <VisibilityIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="Modifier">
