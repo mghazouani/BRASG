@@ -30,6 +30,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Redirection automatique si session expirée
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem("token");
+      document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      window.location.href = "/login";
+      return Promise.reject(error);
+    }
     // Affichage/log des erreurs globales (optionnel)
     if (error.response) {
       console.error("API error:", error.response.status, error.response.data);
