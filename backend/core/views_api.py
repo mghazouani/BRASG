@@ -12,16 +12,41 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 import os
+from rest_framework.pagination import PageNumberPagination
+from django.db.models import Q
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
 
+class ClientPageNumberPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 200
+
+    def get_page_size(self, request):
+        size = super().get_page_size(request)
+        print(f"[API][page_size] param page_size={request.query_params.get('page_size')} => utilisé: {size}")
+        return size
+
+@method_decorator(never_cache, name='dispatch')
 class ClientViewSet(viewsets.ModelViewSet):
-    queryset = Client.objects.all()
+    queryset = Client.objects.all().order_by('nom_client')
     serializer_class = ClientSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['statut_general', 'date_creation', 'langue']
     search_fields = ['nom_client', 'sap_id', 'telephone']
     ordering_fields = ['date_creation', 'nom_client', 'statut_general']
-    pagination_class = pagination.LimitOffsetPagination
+    pagination_class = ClientPageNumberPagination
+
+    def get_queryset(self):
+        queryset = Client.objects.all().order_by('nom_client')
+        region = self.request.query_params.get('region')
+        ville = self.request.query_params.get('ville')
+        if region:
+            queryset = queryset.filter(region__iexact=region)
+        if ville:
+            queryset = queryset.filter(ville__iexact=ville)
+        return queryset
 
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AuditLog.objects.all()

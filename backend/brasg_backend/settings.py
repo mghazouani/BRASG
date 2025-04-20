@@ -47,9 +47,11 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'django_filters',  # Add this line
     'core',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -135,6 +137,12 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# --- CORS HEADERS ---
+CORS_ALLOW_ALL_ORIGINS = True  # Pour développement, à restreindre en prod
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",
+# ]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
