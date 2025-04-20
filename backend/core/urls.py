@@ -1,9 +1,10 @@
 from django.urls import path, include
 from rest_framework import routers
-from .views_api import ClientViewSet, AuditLogViewSet, MeView, MeUpdateView, ChangePasswordView, CustomTokenObtainPairView, DeleteAvatarView
+from .views_api import ClientViewSet, AuditLogViewSet, MeView, MeUpdateView, ChangePasswordView, CustomTokenObtainPairView, DeleteAvatarView, VilleViewSet
 
 router = routers.DefaultRouter()
 router.register(r'clients', ClientViewSet)
+router.register(r'villes', VilleViewSet)
 router.register(r'auditlogs', AuditLogViewSet)
 
 urlpatterns = [

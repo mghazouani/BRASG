@@ -2,8 +2,8 @@ from rest_framework import viewsets, permissions, status, pagination
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Client, AuditLog
-from .serializers import ClientSerializer, AuditLogSerializer, UserSerializer
+from .models import Client, AuditLog, Ville
+from .serializers import ClientSerializer, AuditLogSerializer, UserSerializer, VilleSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.password_validation import validate_password
@@ -52,6 +52,13 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AuditLog.objects.all()
     serializer_class = AuditLogSerializer
     permission_classes = [permissions.IsAdminUser]
+
+class VilleViewSet(viewsets.ReadOnlyModelViewSet):
+    """API pour lister les villes"""
+    queryset = Ville.objects.all().order_by('nom')
+    serializer_class = VilleSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None  # désactive la pagination pour renvoyer toutes les villes
 
 class MeView(APIView):
     permission_classes = [IsAuthenticated]

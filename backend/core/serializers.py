@@ -103,6 +103,12 @@ class UserSerializer(serializers.ModelSerializer):
             'image_profil', 'image_profil_small', 'image_profil_medium', 'image_profil_large'
         ]
 
+class VilleSerializer(serializers.ModelSerializer):
+    """Serializer pour le modèle Ville"""
+    class Meta:
+        model = Ville
+        fields = ['id', 'nom', 'region']
+
 class ClientSerializer(serializers.ModelSerializer):
     # Ville référencée, affichée par son nom au lieu de son ID
     ville = serializers.SlugRelatedField(slug_field='nom', queryset=Ville.objects.all())

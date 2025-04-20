@@ -12,9 +12,18 @@ export interface ClientFiltersProps {
   region: string;
   onRegion: (val: string) => void;
   regions: string[];
+  langue: string;
+  onLangue: (val: string) => void;
+  langues: { value: string; label: string }[];
+  aide: string;
+  onAide: (val: string) => void;
+  aideOptions: { value: boolean; label: string }[];
+  app: string;
+  onApp: (val: string) => void;
+  appOptions: { value: boolean; label: string }[];
 }
 
-export default function ClientFilters({ search, onSearch, statut, onStatut, region, onRegion, regions }: ClientFiltersProps) {
+export default function ClientFilters({ search, onSearch, statut, onStatut, region, onRegion, regions, langue, onLangue, langues, aide, onAide, aideOptions, app, onApp, appOptions }: ClientFiltersProps) {
   return (
     <div className="flex flex-wrap gap-4 mb-4 items-end">
       <TextField
@@ -55,6 +64,45 @@ export default function ClientFilters({ search, onSearch, statut, onStatut, regi
         <MenuItem value="">Toutes</MenuItem>
         {regions.map(r => (
           <MenuItem key={r} value={r}>{r}</MenuItem>
+        ))}
+      </TextField>
+      <TextField
+        label="Langue"
+        size="small"
+        select
+        value={langue}
+        onChange={e => onLangue(e.target.value)}
+        className="w-36"
+      >
+        <MenuItem value="">Toutes</MenuItem>
+        {langues.map(opt => (
+          <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+        ))}
+      </TextField>
+      <TextField
+        label="Aide demandée"
+        size="small"
+        select
+        value={aide}
+        onChange={e => onAide(e.target.value)}
+        className="w-36"
+      >
+        <MenuItem value="">Toutes</MenuItem>
+        {aideOptions.map(opt => (
+          <MenuItem key={opt.value.toString()} value={`${opt.value}`}>{opt.label}</MenuItem>
+        ))}
+      </TextField>
+      <TextField
+        label="App installée"
+        size="small"
+        select
+        value={app}
+        onChange={e => onApp(e.target.value)}
+        className="w-36"
+      >
+        <MenuItem value="">Toutes</MenuItem>
+        {appOptions.map(opt => (
+          <MenuItem key={opt.value.toString()} value={`${opt.value}`}>{opt.label}</MenuItem>
         ))}
       </TextField>
     </div>

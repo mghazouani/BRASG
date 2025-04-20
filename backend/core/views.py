@@ -18,7 +18,7 @@ class ClientViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = ClientPageNumberPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['statut_general', 'region']
+    filterset_fields = ['statut_general', 'region', 'langue', 'a_demande_aide', 'app_installee']
     search_fields = ['nom_client', 'sap_id', 'telephone']
     ordering_fields = ['date_creation', 'nom_client', 'statut_general']
 

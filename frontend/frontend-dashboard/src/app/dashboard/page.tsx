@@ -26,6 +26,7 @@ import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import Autocomplete from "@mui/material/Autocomplete";
 
 interface Client {
   id: string;
@@ -48,6 +49,12 @@ interface Client {
   relance_planifiee: boolean;
 }
 
+interface VilleType {
+  id: string;
+  nom: string;
+  region: string;
+}
+
 const statutColor = (statut: string) => {
   switch (statut) {
     case "actif":
@@ -68,6 +75,9 @@ export default function DashboardPage() {
   const [search, setSearch] = useState("");
   const [statut, setStatut] = useState("");
   const [region, setRegion] = useState("");
+  const [langue, setLangue] = useState<string>("");
+  const [aide, setAide] = useState<string>("");
+  const [app, setApp] = useState<string>("");
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [editClient, setEditClient] = useState<Client | null>(null);
   const [editLoading, setEditLoading] = useState(false);
@@ -77,6 +87,7 @@ export default function DashboardPage() {
   const [inlineEditLoading, setInlineEditLoading] = useState(false);
   const [inlineEditError, setInlineEditError] = useState<string | null>(null);
   const [totalClients, setTotalClients] = useState(0);
+  const [villes, setVilles] = useState<VilleType[]>([]);
 
   // Chargement dynamique des paramètres du Dashboard
   const [dashboardSettings, setDashboardSettings] = useState<{
@@ -99,6 +110,12 @@ export default function DashboardPage() {
       if (res.data.length > 0) setDashboardSettings(res.data[0].settings);
     }).catch(console.error);
   }, []);
+  useEffect(() => {
+    api.get("villes/").then(res => {
+      const data = Array.isArray(res.data) ? res.data : res.data.results;
+      setVilles(data as VilleType[]);
+    });
+  }, []);
   // Choix dynamiques depuis JSON
   const statutChoices = dashboardSettings.statut_general;
   const langueChoices = dashboardSettings.langue;
@@ -117,10 +134,10 @@ export default function DashboardPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [ordering, setOrdering] = useState<string>("nom_client");
 
-  // Remettre la page à 1 si perPage, search, statut ou region changent
+  // Remettre la page à 1 si perPage, search, statut, langue, aide, app ou region changent
   useEffect(() => {
     setPage(1);
-  }, [perPage, search, statut, region]);
+  }, [perPage, search, statut, langue, aide, app, region]);
 
   // Sécuriser la page courante si > totalPages
   useEffect(() => {
@@ -136,9 +153,12 @@ export default function DashboardPage() {
     if (search) params.append("search", search);
     if (statut) params.append("statut_general", statut);
     if (region) params.append("region", region);
+    if (langue) params.append("langue", langue);
+    if (aide) params.append("a_demande_aide", aide);
+    if (app) params.append("app_installee", app);
     if (ordering) params.append("ordering", ordering);
     console.log("[API] clients/?" + params.toString());
-  }, [page, perPage, search, statut, region, ordering]);
+  }, [page, perPage, search, statut, region, langue, aide, app, ordering]);
 
   // Fetch clients paginés et filtrés côté backend
   useEffect(() => {
@@ -151,6 +171,9 @@ export default function DashboardPage() {
     if (search) params.append("search", search);
     if (statut) params.append("statut_general", statut);
     if (region) params.append("region", region);
+    if (langue) params.append("langue", langue);
+    if (aide) params.append("a_demande_aide", aide);
+    if (app) params.append("app_installee", app);
     if (ordering) params.append("ordering", ordering);
     api.get(`clients/?${params.toString()}`)
       .then((res) => {
@@ -161,7 +184,7 @@ export default function DashboardPage() {
       })
       .catch((err) => setError(err.response?.data?.detail || "Erreur API"))
       .finally(() => setLoading(false));
-  }, [page, perPage, search, statut, region, ordering]);
+  }, [page, perPage, search, statut, region, langue, aide, app, ordering]);
 
   const handlePageChange = (_: any, value: number) => {
     setPage(value);
@@ -296,6 +319,15 @@ export default function DashboardPage() {
         region={region}
         onRegion={setRegion}
         regions={regions}
+        langue={langue}
+        onLangue={setLangue}
+        langues={langueChoices}
+        aide={aide}
+        onAide={setAide}
+        aideOptions={aideChoices}
+        app={app}
+        onApp={setApp}
+        appOptions={appChoices}
       />
       {/* Pagination classique (haut) */}
       <PaginationBar page={page} count={totalPages} onChange={handlePageChange} perPage={perPage} onPerPageChange={handlePerPageChange} />
@@ -384,13 +416,29 @@ export default function DashboardPage() {
                       {/* REGION */}
                       <td className="p-2">
                         {inlineEditId === client.id ? (
-                          <TextField size="small" value={inlineEditData.region || ''} onChange={e => setInlineEditData(d => ({ ...d, region: e.target.value }))} />
+                          <TextField size="small" value={inlineEditData.region || ''} disabled />
                         ) : (client.region || <span className="text-gray-400">—</span>)}
                       </td>
                       {/* VILLE */}
                       <td className="p-2">
                         {inlineEditId === client.id ? (
-                          <TextField size="small" value={inlineEditData.ville || ''} onChange={e => setInlineEditData(d => ({ ...d, ville: e.target.value }))} />
+                          <Autocomplete
+                            freeSolo openOnFocus autoHighlight
+                            ListboxProps={{ style: { maxHeight: '20rem' } }}
+                            options={villes.map(v => v.nom)}
+                            value={inlineEditData.ville || ''}
+                            size="small"
+                            onChange={(_, value) => {
+                              const sel = villes.find(v => v.nom === value);
+                              setInlineEditData(d => ({ ...d, ville: value || '', region: sel?.region || '' }));
+                            }}
+                            onInputChange={(_, value) => setInlineEditData(d => ({ ...d, ville: value }))}
+                            onBlur={() => {
+                              const sel = villes.find(v => v.nom === inlineEditData.ville);
+                              if (sel) setInlineEditData(d => ({ ...d, region: sel.region }));
+                            }}
+                            renderInput={(params) => <TextField {...params} size="small" />}
+                          />
                         ) : (client.ville || <span className="text-gray-400">—</span>)}
                       </td>
                       {/* LANGUE */}
