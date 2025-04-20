@@ -241,8 +241,8 @@ export default function DashboardPage() {
       {error && <Alert severity="error" className="mb-4">{error}</Alert>}
       {inlineEditError && <Alert severity="error" className="mb-2">{inlineEditError}</Alert>}
       {(!loading && !error) && (
-        <div className="w-full max-w-5xl bg-white rounded shadow p-6">
-          <div className="flex items-center justify-between w-full max-w-5xl mb-2">
+        <div className="w-full bg-white rounded shadow p-6 overflow-x-auto">
+          <div className="flex items-center justify-between w-full mb-2">
             <div className="text-gray-700 dark:text-gray-200 text-sm">
               Page {page} / {totalPages} — {totalClients} client{totalClients > 1 ? "s" : ""}
               {totalClients > 0 && (
@@ -253,175 +253,177 @@ export default function DashboardPage() {
           {clients.length === 0 ? (
             <div className="text-gray-500">Aucun client trouvé.</div>
           ) : (
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="bg-blue-50">
-                  <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('nom_client')}>
-                    Nom {ordering === 'nom_client' ? '▲' : ordering === '-nom_client' ? '▼' : ''}
-                  </th>
-                  <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('statut_general')}>
-                    Statut {ordering === 'statut_general' ? '▲' : ordering === '-statut_general' ? '▼' : ''}
-                  </th>
-                  <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('telephone')}>
-                    Téléphone {ordering === 'telephone' ? '▲' : ordering === '-telephone' ? '▼' : ''}
-                  </th>
-                  <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('region')}>
-                    Région {ordering === 'region' ? '▲' : ordering === '-region' ? '▼' : ''}
-                  </th>
-                  <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('ville')}>
-                    Ville {ordering === 'ville' ? '▲' : ordering === '-ville' ? '▼' : ''}
-                  </th>
-                  <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('langue')}>
-                    Langue {ordering === 'langue' ? '▲' : ordering === '-langue' ? '▼' : ''}
-                  </th>
-                  <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('a_demande_aide')}>
-                    Aide {ordering === 'a_demande_aide' ? '▲' : ordering === '-a_demande_aide' ? '▼' : ''}
-                  </th>
-                  <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('app_installee')}>
-                    App {ordering === 'app_installee' ? '▲' : ordering === '-app_installee' ? '▼' : ''}
-                  </th>
-                  <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('commentaire_agent')}>
-                    Commentaire {ordering === 'commentaire_agent' ? '▲' : ordering === '-commentaire_agent' ? '▼' : ''}
-                  </th>
-                  <th className="p-2 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {clients.map((client) => (
-                  <tr key={client.id} className="border-b hover:bg-blue-50">
-                    {/* NOM */}
-                    <td className="p-2 font-semibold text-blue-700">
-                      {inlineEditId === client.id ? (
-                        <TextField size="small" value={inlineEditData.nom_client || ''} onChange={e => setInlineEditData(d => ({ ...d, nom_client: e.target.value }))} />
-                      ) : client.nom_client}
-                    </td>
-                    {/* STATUT */}
-                    <td className="p-2">
-                      {inlineEditId === client.id ? (
-                        <TextField
-                          size="small"
-                          select
-                          value={inlineEditData.statut_general || ''}
-                          onChange={e => setInlineEditData(d => ({ ...d, statut_general: e.target.value }))}
-                        >
-                          {statutChoices.map(opt => (
-                            <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                          ))}
-                        </TextField>
-                      ) : (
-                        <Chip label={client.statut_general} size="small" color={statutColor(client.statut_general)} />
-                      )}
-                    </td>
-                    {/* TELEPHONE */}
-                    <td className="p-2">
-                      {inlineEditId === client.id ? (
-                        <TextField size="small" value={inlineEditData.telephone || ''} onChange={e => setInlineEditData(d => ({ ...d, telephone: e.target.value }))} />
-                      ) : client.telephone}
-                    </td>
-                    {/* REGION */}
-                    <td className="p-2">
-                      {inlineEditId === client.id ? (
-                        <TextField size="small" value={inlineEditData.region || ''} onChange={e => setInlineEditData(d => ({ ...d, region: e.target.value }))} />
-                      ) : (client.region || <span className="text-gray-400">—</span>)}
-                    </td>
-                    {/* VILLE */}
-                    <td className="p-2">
-                      {inlineEditId === client.id ? (
-                        <TextField size="small" value={inlineEditData.ville || ''} onChange={e => setInlineEditData(d => ({ ...d, ville: e.target.value }))} />
-                      ) : (client.ville || <span className="text-gray-400">—</span>)}
-                    </td>
-                    {/* LANGUE */}
-                    <td className="p-2 capitalize">
-                      {inlineEditId === client.id ? (
-                        <TextField
-                          size="small"
-                          select
-                          value={inlineEditData.langue || ''}
-                          onChange={e => setInlineEditData(d => ({ ...d, langue: e.target.value }))}
-                        >
-                          {langueChoices.map(opt => (
-                            <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                          ))}
-                        </TextField>
-                      ) : client.langue}
-                    </td>
-                    {/* AIDE */}
-                    <td className="p-2">
-                      {client.a_demande_aide && (
-                        <Tooltip title={client.nature_aide || "Aide demandée"}>
-                          <HelpIcon color="warning" />
-                        </Tooltip>
-                      )}
-                    </td>
-                    {/* APP */}
-                    <td className="p-2">
-                      {client.app_installee === false ? (
-                        <Tooltip title="Application non installée">
-                          <SmartphoneIcon color="error" />
-                        </Tooltip>
-                      ) : client.maj_app && client.maj_app.toLowerCase() !== "à jour" ? (
-                        <Tooltip title={`App non à jour (${client.maj_app})`}>
-                          <SmartphoneIcon color="warning" />
-                        </Tooltip>
-                      ) : (
-                        <span className="text-green-600">✔</span>
-                      )}
-                    </td>
-                    {/* COMMENTAIRE AGENT */}
-                    <td className="p-2 max-w-xs truncate">
-                      {inlineEditId === client.id ? (
-                        <TextField size="small" value={inlineEditData.commentaire_agent || ''} onChange={e => setInlineEditData(d => ({ ...d, commentaire_agent: e.target.value }))} />
-                      ) : client.commentaire_agent ? (
-                        <Tooltip title={client.commentaire_agent}>
-                          <span>{client.commentaire_agent.slice(0, 20)}{client.commentaire_agent.length > 20 ? "..." : ""}</span>
-                        </Tooltip>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </td>
-                    {/* ACTIONS */}
-                    <td className="p-2 flex gap-1">
-                      {inlineEditId === client.id ? (
-                        <>
-                          <Tooltip title="Enregistrer">
-                            <span>
-                              <IconButton size="small" onClick={saveInlineEdit} disabled={inlineEditLoading}>
-                                <SaveIcon fontSize="small" />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                          <Tooltip title="Annuler">
-                            <span>
-                              <IconButton size="small" onClick={cancelInlineEdit} disabled={inlineEditLoading}>
-                                <CancelIcon fontSize="small" />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        </>
-                      ) : (
-                        <>
-                          <Tooltip title="Détails">
-                            <IconButton size="small" onClick={() => setSelectedClient(client)}>
-                              <InfoIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Modifier">
-                            <IconButton size="small" onClick={() => setEditClient(client)}>
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Édition rapide">
-                            <IconButton size="small" onClick={() => startInlineEdit(client)}>
-                              <SaveIcon fontSize="small" color="action" />
-                            </IconButton>
-                          </Tooltip>
-                        </>
-                      )}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="min-w-full w-full text-sm table-auto">
+                <thead>
+                  <tr className="bg-blue-50">
+                    <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('nom_client')}>
+                      Nom {ordering === 'nom_client' ? '▲' : ordering === '-nom_client' ? '▼' : ''}
+                    </th>
+                    <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('statut_general')}>
+                      Statut {ordering === 'statut_general' ? '▲' : ordering === '-statut_general' ? '▼' : ''}
+                    </th>
+                    <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('telephone')}>
+                      Téléphone {ordering === 'telephone' ? '▲' : ordering === '-telephone' ? '▼' : ''}
+                    </th>
+                    <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('region')}>
+                      Région {ordering === 'region' ? '▲' : ordering === '-region' ? '▼' : ''}
+                    </th>
+                    <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('ville')}>
+                      Ville {ordering === 'ville' ? '▲' : ordering === '-ville' ? '▼' : ''}
+                    </th>
+                    <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('langue')}>
+                      Langue {ordering === 'langue' ? '▲' : ordering === '-langue' ? '▼' : ''}
+                    </th>
+                    <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('a_demande_aide')}>
+                      Aide {ordering === 'a_demande_aide' ? '▲' : ordering === '-a_demande_aide' ? '▼' : ''}
+                    </th>
+                    <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('app_installee')}>
+                      App {ordering === 'app_installee' ? '▲' : ordering === '-app_installee' ? '▼' : ''}
+                    </th>
+                    <th className="p-2 text-left cursor-pointer" onClick={() => handleSort('commentaire_agent')}>
+                      Commentaire {ordering === 'commentaire_agent' ? '▲' : ordering === '-commentaire_agent' ? '▼' : ''}
+                    </th>
+                    <th className="p-2 text-left">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {clients.map((client) => (
+                    <tr key={client.id} className="border-b hover:bg-blue-50">
+                      {/* NOM */}
+                      <td className="p-2 font-semibold text-blue-700">
+                        {inlineEditId === client.id ? (
+                          <TextField size="small" value={inlineEditData.nom_client || ''} onChange={e => setInlineEditData(d => ({ ...d, nom_client: e.target.value }))} />
+                        ) : client.nom_client}
+                      </td>
+                      {/* STATUT */}
+                      <td className="p-2">
+                        {inlineEditId === client.id ? (
+                          <TextField
+                            size="small"
+                            select
+                            value={inlineEditData.statut_general || ''}
+                            onChange={e => setInlineEditData(d => ({ ...d, statut_general: e.target.value }))}
+                          >
+                            {statutChoices.map(opt => (
+                              <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                            ))}
+                          </TextField>
+                        ) : (
+                          <Chip label={client.statut_general} size="small" color={statutColor(client.statut_general)} />
+                        )}
+                      </td>
+                      {/* TELEPHONE */}
+                      <td className="p-2">
+                        {inlineEditId === client.id ? (
+                          <TextField size="small" value={inlineEditData.telephone || ''} onChange={e => setInlineEditData(d => ({ ...d, telephone: e.target.value }))} />
+                        ) : client.telephone}
+                      </td>
+                      {/* REGION */}
+                      <td className="p-2">
+                        {inlineEditId === client.id ? (
+                          <TextField size="small" value={inlineEditData.region || ''} onChange={e => setInlineEditData(d => ({ ...d, region: e.target.value }))} />
+                        ) : (client.region || <span className="text-gray-400">—</span>)}
+                      </td>
+                      {/* VILLE */}
+                      <td className="p-2">
+                        {inlineEditId === client.id ? (
+                          <TextField size="small" value={inlineEditData.ville || ''} onChange={e => setInlineEditData(d => ({ ...d, ville: e.target.value }))} />
+                        ) : (client.ville || <span className="text-gray-400">—</span>)}
+                      </td>
+                      {/* LANGUE */}
+                      <td className="p-2 capitalize">
+                        {inlineEditId === client.id ? (
+                          <TextField
+                            size="small"
+                            select
+                            value={inlineEditData.langue || ''}
+                            onChange={e => setInlineEditData(d => ({ ...d, langue: e.target.value }))}
+                          >
+                            {langueChoices.map(opt => (
+                              <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                            ))}
+                          </TextField>
+                        ) : client.langue}
+                      </td>
+                      {/* AIDE */}
+                      <td className="p-2">
+                        {client.a_demande_aide && (
+                          <Tooltip title={client.nature_aide || "Aide demandée"}>
+                            <HelpIcon color="warning" />
+                          </Tooltip>
+                        )}
+                      </td>
+                      {/* APP */}
+                      <td className="p-2">
+                        {client.app_installee === false ? (
+                          <Tooltip title="Application non installée">
+                            <SmartphoneIcon color="error" />
+                          </Tooltip>
+                        ) : client.maj_app && client.maj_app.toLowerCase() !== "à jour" ? (
+                          <Tooltip title={`App non à jour (${client.maj_app})`}>
+                            <SmartphoneIcon color="warning" />
+                          </Tooltip>
+                        ) : (
+                          <span className="text-green-600">✔</span>
+                        )}
+                      </td>
+                      {/* COMMENTAIRE AGENT */}
+                      <td className="p-2 max-w-xs truncate">
+                        {inlineEditId === client.id ? (
+                          <TextField size="small" value={inlineEditData.commentaire_agent || ''} onChange={e => setInlineEditData(d => ({ ...d, commentaire_agent: e.target.value }))} />
+                        ) : client.commentaire_agent ? (
+                          <Tooltip title={client.commentaire_agent}>
+                            <span>{client.commentaire_agent.slice(0, 20)}{client.commentaire_agent.length > 20 ? "..." : ""}</span>
+                          </Tooltip>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                      {/* ACTIONS */}
+                      <td className="p-2 flex gap-1">
+                        {inlineEditId === client.id ? (
+                          <>
+                            <Tooltip title="Enregistrer">
+                              <span>
+                                <IconButton size="small" onClick={saveInlineEdit} disabled={inlineEditLoading}>
+                                  <SaveIcon fontSize="small" />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                            <Tooltip title="Annuler">
+                              <span>
+                                <IconButton size="small" onClick={cancelInlineEdit} disabled={inlineEditLoading}>
+                                  <CancelIcon fontSize="small" />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                          </>
+                        ) : (
+                          <>
+                            <Tooltip title="Détails">
+                              <IconButton size="small" onClick={() => setSelectedClient(client)}>
+                                <InfoIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Modifier">
+                              <IconButton size="small" onClick={() => setEditClient(client)}>
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Édition rapide">
+                              <IconButton size="small" onClick={() => startInlineEdit(client)}>
+                                <SaveIcon fontSize="small" color="action" />
+                              </IconButton>
+                            </Tooltip>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
