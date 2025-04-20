@@ -248,13 +248,17 @@ export default function DashboardPage() {
           ? <TextField size="small" select value={inlineEditData.langue || ''} onChange={e => setInlineEditData(d => ({ ...d, langue: e.target.value }))}>
               {langueChoices.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
             </TextField>
-          : client.langue;
+          : (langueChoices.find(opt => opt.value === client.langue)?.label || <span className="text-gray-400">—</span>);
       case 'statut_general':
         return isEditing
           ? <TextField size="small" select value={inlineEditData.statut_general || ''} onChange={e => setInlineEditData(d => ({ ...d, statut_general: e.target.value }))}>
               {statutChoices.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
             </TextField>
-          : <Chip label={client.statut_general} size="small" color={statutColor(client.statut_general)} />;
+          : <Chip
+              label={dashboardSettings.statut_general.find(opt => opt.value === client.statut_general)?.label || client.statut_general}
+              size="small"
+              color={statutColor(client.statut_general)}
+            />;
       case 'canal_contact':
         return isEditing
           ? (
@@ -264,7 +268,7 @@ export default function DashboardPage() {
                 ))}
               </TextField>
             )
-          : client.canal_contact || <span className="text-gray-400">—</span>;
+          : (dashboardSettings.canal_contact.find(opt => opt.value === client.canal_contact)?.label || <span className="text-gray-400">—</span>);
       case 'notification_client':
         return isEditing
           ? <TextField size="small" select value={`${inlineEditData.notification_client}`} onChange={e => setInlineEditData(d => ({ ...d, notification_client: e.target.value === 'true' }))}>
@@ -280,11 +284,13 @@ export default function DashboardPage() {
           ? <TextField size="small" select value={`${inlineEditData.app_installee}`} onChange={e => setInlineEditData(d => ({ ...d, app_installee: e.target.value === 'true' }))}>
               {dashboardSettings.app_installee.map(opt => <MenuItem key={`${opt.value}`} value={`${opt.value}`}>{opt.label}</MenuItem>)}
             </TextField>
-          : (client.app_installee === false
-              ? <Tooltip title="App non installée"><SmartphoneIcon color="error" /></Tooltip>
-              : client.maj_app && client.maj_app.toLowerCase() !== "à jour"
-                ? <Tooltip title={`App non à jour (${client.maj_app})`}><SmartphoneIcon color="warning" /></Tooltip>
-                : <span className="text-green-600">✔</span>);
+          : (
+              client.app_installee === false
+                ? <Tooltip title="App non installée"><SmartphoneIcon color="error" /></Tooltip>
+                : client.maj_app !== dashboardSettings.maj_app
+                  ? <Tooltip title={`App non à jour (installé: ${client.maj_app || 'inconnu'} / dernière: ${dashboardSettings.maj_app})`}><SmartphoneIcon color="warning" /></Tooltip>
+                  : <Tooltip title={`Dernière mise à jour : ${dashboardSettings.maj_app}`}><span className="text-green-600">✔</span></Tooltip>
+            );
       case 'maj_app':
         return isEditing
           ? <TextField size="small" value={inlineEditData.maj_app || ''} onChange={e => setInlineEditData(d => ({ ...d, maj_app: e.target.value }))} />
@@ -428,7 +434,7 @@ export default function DashboardPage() {
       <div className="flex justify-between items-center w-full mb-6 fade-in">
         <div className="flex items-center gap-4">
           <UserMenu />
-          <h1 className="text-3xl font-bold text-blue-800 dark:text-blue-200">Suivi des clients</h1>
+          <h1 className="text-3xl font-bold text-blue-800 dark:text-blue-200">Suivi Déploiement ASG</h1>
           <UserInfo />
         </div>
         <div className="flex items-center gap-2">
