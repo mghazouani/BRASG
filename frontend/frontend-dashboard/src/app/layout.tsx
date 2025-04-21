@@ -1,6 +1,6 @@
-import "./globals.css";
+import AppShell from "./components/AppShell";
 import { Inter } from "next/font/google";
-import ClientThemeProvider from "./components/ClientThemeProvider";
+import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -12,8 +12,12 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="emotion-insertion-point" content="" />
+      </head>
       <body className={inter.className}>
-        <ClientThemeProvider>{children}</ClientThemeProvider>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );
