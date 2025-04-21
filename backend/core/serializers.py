@@ -113,11 +113,30 @@ class ClientSerializer(serializers.ModelSerializer):
     # Ville référencée, affichée par son nom au lieu de son ID
     ville = serializers.SlugRelatedField(slug_field='nom', queryset=Ville.objects.all())
     region = serializers.CharField(read_only=True)
+    # Serialiser les UUIDs des users en tant que chaînes
+    cree_par_user = serializers.UUIDField(source='cree_par_user_id', read_only=True)
+    modifie_par_user = serializers.UUIDField(source='modifie_par_user_id', read_only=True)
+
+    def update(self, instance, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            instance._current_user = request.user
+        return super().update(instance, validated_data)
+
+    def create(self, validated_data):
+        instance = super().create(validated_data)
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            instance._current_user = request.user
+            instance.save()
+        return instance
+
     class Meta:
         model = Client
         fields = '__all__'
 
 class AuditLogSerializer(serializers.ModelSerializer):
+    user = serializers.SlugRelatedField(slug_field='username', read_only=True)
     class Meta:
         model = AuditLog
         fields = '__all__'

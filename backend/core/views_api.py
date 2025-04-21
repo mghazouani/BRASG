@@ -48,10 +48,28 @@ class ClientViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(ville__iexact=ville)
         return queryset
 
+    def perform_update(self, serializer):
+        instance = serializer.instance
+        instance._current_user = self.request.user  # Toujours positionner avant le save
+        serializer.save(modifie_par_user=self.request.user)
+
+    def perform_create(self, serializer):
+        obj = serializer.save(
+            cree_par_user=self.request.user,
+            modifie_par_user=self.request.user
+        )
+        obj._current_user = self.request.user  # Toujours positionner avant le save d'audit
+        obj.save()
+
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AuditLog.objects.all()
     serializer_class = AuditLogSerializer
     permission_classes = [permissions.IsAdminUser]
+    # Filtrer l'historique par table et enregistrement
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['table_name', 'record_id']
+    ordering_fields = ['timestamp']
+    ordering = ['-timestamp']
 
 class VilleViewSet(viewsets.ReadOnlyModelViewSet):
     """API pour lister les villes"""

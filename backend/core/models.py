@@ -102,17 +102,58 @@ class Client(models.Model):
                 "priorite": "haute"
             })
         # --- FIN RÈGLES MÉTIER ---
+        # Audit automatique : enregistrement des changements
+        is_creation = self._state.adding
+        prev_instance = None
+        if not is_creation:
+            try:
+                prev_instance = Client.objects.get(pk=self.pk)
+            except Client.DoesNotExist:
+                is_creation = True
+        changes: dict = {}
+        if prev_instance:
+            import datetime
+            def serialize_date(val):
+                if isinstance(val, (datetime.date, datetime.datetime)):
+                    return val.isoformat()
+                return val
+            for field in self._meta.fields:
+                name = field.name
+                old_val = field.value_from_object(prev_instance)
+                new_val = field.value_from_object(self)
+                # Convert UUID to string for JSONField
+                if isinstance(old_val, uuid.UUID):
+                    old_val = str(old_val)
+                if isinstance(new_val, uuid.UUID):
+                    new_val = str(new_val)
+                old_val = serialize_date(old_val)
+                new_val = serialize_date(new_val)
+                if old_val != new_val:
+                    changes[name] = {'old': old_val, 'new': new_val}
         super().save(*args, **kwargs)
-        # Audit automatique
+        if actions:
+            changes['actions_declenchees'] = actions
         from .models import AuditLog, User
-        import inspect
+        import logging
+        logger = logging.getLogger(__name__)
         user = getattr(self, '_current_user', None)
+        print(f"[AUDIT] _current_user reçu: {user} (type: {type(user)})")
+        logger.warning(f"[AUDIT] _current_user reçu: {user} (type: {type(user)})")
+        if user is not None and not isinstance(user, User):
+            try:
+                user = User.objects.get(pk=user)
+                print(f"[AUDIT] _current_user converti en User: {user}")
+                logger.warning(f"[AUDIT] _current_user converti en User: {user}")
+            except Exception as e:
+                print(f"[AUDIT] Impossible de convertir _current_user en User: {user} ({e})")
+                logger.error(f"[AUDIT] Impossible de convertir _current_user en User: {user} ({e})")
+                user = None
         AuditLog.objects.create(
             table_name='Client',
             record_id=self.id,
             user=user,
-            action='update' if self.pk else 'create',
-            champs_changes={'actions_declenchees': actions}
+            action='create' if is_creation else 'update',
+            champs_changes=changes
         )
 
 class Ville(models.Model):

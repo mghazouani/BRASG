@@ -56,6 +56,16 @@ interface VilleType {
   region: string;
 }
 
+interface AuditLogType {
+  id: string;
+  table_name: string;
+  record_id: string;
+  user: string;
+  action: string;
+  champs_changes: any;
+  timestamp: string;
+}
+
 const statutColor = (statut: string) => {
   switch (statut) {
     case "actif":
@@ -89,6 +99,7 @@ export default function DashboardPage() {
   const [inlineEditError, setInlineEditError] = useState<string | null>(null);
   const [totalClients, setTotalClients] = useState(0);
   const [villes, setVilles] = useState<VilleType[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogType[]>([]);
 
   // Chargement dynamique des paramètres du Dashboard
   const [dashboardSettings, setDashboardSettings] = useState<{
@@ -119,6 +130,19 @@ export default function DashboardPage() {
       setVilles(data as VilleType[]);
     });
   }, []);
+  // Charger l’historique des modifications à chaque sélection
+  useEffect(() => {
+    if (!selectedClient) {
+      setAuditLogs([]);
+      return;
+    }
+    api.get("auditlogs/", { params: { table_name: "Client", record_id: selectedClient.id } })
+      .then(res => {
+        const data = Array.isArray(res.data) ? res.data : res.data.results;
+        setAuditLogs(data as AuditLogType[]);
+      })
+      .catch(console.error);
+  }, [selectedClient]);
   // Choix dynamiques depuis JSON
   const statutChoices = dashboardSettings.statut_general;
   const langueChoices = dashboardSettings.langue;
@@ -617,7 +641,7 @@ export default function DashboardPage() {
       {/* Modal de détails client */}
       {selectedClient && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded shadow-lg p-8 max-w-lg w-full relative">
+          <div className="bg-white rounded shadow-lg p-8 w-[90vw] max-w-5xl max-h-[80vh] flex flex-col relative overflow-hidden">
             <button
               className="absolute top-2 right-2 text-gray-400 hover:text-blue-700 text-xl"
               onClick={() => setSelectedClient(null)}
@@ -625,23 +649,60 @@ export default function DashboardPage() {
               ×
             </button>
             <h2 className="text-2xl font-bold text-blue-800 mb-4">Détails client</h2>
-            <div className="space-y-2">
-              <div><b>ID SAP:</b> {selectedClient.sap_id}</div>
-              <div><b>Nom:</b> {selectedClient.nom_client}</div>
-              <div><b>Téléphone:</b> {selectedClient.telephone}</div>
-              <div><b>Région:</b> {selectedClient.region || <span className="text-gray-400">—</span>}</div>
-              <div><b>Ville:</b> {selectedClient.ville || <span className="text-gray-400">—</span>}</div>
-              <div><b>Langue:</b> {selectedClient.langue}</div>
-              <div><b>Statut:</b> <Chip label={selectedClient.statut_general} size="small" color={statutColor(selectedClient.statut_general)} /></div>
-              <div><b>Notification client:</b> {selectedClient.notification_client ? "Oui" : "Non"}</div>
-              <div><b>Date notification:</b> {selectedClient.date_notification || <span className="text-gray-400">—</span>}</div>
-              <div><b>A demandé aide:</b> {selectedClient.a_demande_aide ? `Oui (${selectedClient.nature_aide || ''})` : "Non"}</div>
-              <div><b>App installée:</b> {selectedClient.app_installee === false ? "Non" : selectedClient.app_installee === true ? "Oui" : <span className="text-gray-400">—</span>}</div>
-              <div><b>MàJ app:</b> {selectedClient.maj_app || <span className="text-gray-400">—</span>}</div>
-              <div><b>Commentaire agent:</b> {selectedClient.commentaire_agent || <span className="text-gray-400">—</span>}</div>
-              <div><b>CMD/Jour:</b> {selectedClient.segment_client || <span className="text-gray-400">—</span>}</div>
-              <div><b>Canal contact:</b> {selectedClient.canal_contact || <span className="text-gray-400">—</span>}</div>
-              <div><b>Relance planifiée:</b> {selectedClient.relance_planifiee ? "Oui" : "Non"}</div>
+            <div className="flex flex-1 space-x-6 overflow-hidden">
+              {/* Partie gauche : détails client */}
+              <div className="w-1/2 space-y-2 overflow-y-auto">
+                <div><b>ID SAP:</b> {selectedClient.sap_id}</div>
+                <div><b>Nom:</b> {selectedClient.nom_client}</div>
+                <div><b>Téléphone:</b> {selectedClient.telephone}</div>
+                <div><b>Région:</b> {selectedClient.region || <span className="text-gray-400">—</span>}</div>
+                <div><b>Ville:</b> {selectedClient.ville || <span className="text-gray-400">—</span>}</div>
+                <div><b>Langue:</b> {selectedClient.langue}</div>
+                <div><b>Statut:</b> <Chip label={selectedClient.statut_general} size="small" color={statutColor(selectedClient.statut_general)} /></div>
+                <div><b>Notification client:</b> {selectedClient.notification_client ? "Oui" : "Non"}</div>
+                <div><b>Date notification:</b> {selectedClient.date_notification || <span className="text-gray-400">—</span>}</div>
+                <div><b>A demandé aide:</b> {selectedClient.a_demande_aide ? `Oui (${selectedClient.nature_aide || ''})` : "Non"}</div>
+                <div><b>App installée:</b> {selectedClient.app_installee === false ? "Non" : selectedClient.app_installee === true ? "Oui" : <span className="text-gray-400">—</span>}</div>
+                <div><b>MàJ app:</b> {selectedClient.maj_app || <span className="text-gray-400">—</span>}</div>
+                <div><b>Commentaire agent:</b> {selectedClient.commentaire_agent || <span className="text-gray-400">—</span>}</div>
+                <div><b>CMD/Jour:</b> {selectedClient.segment_client || <span className="text-gray-400">—</span>}</div>
+                <div><b>Canal contact:</b> {selectedClient.canal_contact || <span className="text-gray-400">—</span>}</div>
+                <div><b>Relance planifiée:</b> {selectedClient.relance_planifiee ? "Oui" : "Non"}</div>
+              </div>
+              {/* Partie droite : historique */}
+              <div className="w-1/2 space-y-2 overflow-y-auto">
+                <h3 className="text-xl font-semibold mb-2">Historique des changements</h3>
+                {auditLogs.length === 0 ? (
+                  <div className="text-gray-500">Aucun historique disponible.</div>
+                ) : (
+                  <ul className="list-disc list-inside max-h-64 overflow-auto">
+                    {auditLogs.map(log => (
+                      <li key={log.id} className="mb-2">
+                        <div>
+                          <span className="font-medium">{new Date(log.timestamp).toLocaleString()}</span> - {log.user} - {log.action}
+                        </div>
+                        <div className="text-sm text-gray-700 space-y-1">
+                          {Object.entries(log.champs_changes).map(([field, val]) => (
+                            React.isValidElement(val) ? val : (
+                              Array.isArray(val) ? (
+                                val.map((act, idx) => (
+                                  <div key={idx} className="ml-2">
+                                    • <b>{act.action}</b>: {act.reason} <span className="text-xs text-gray-500">({act.priorite})</span>
+                                  </div>
+                                ))
+                              ) : (
+                                <div key={field} className="ml-2">
+                                  • <b>{field}</b>: <span className="text-indigo-600">{String((val as any).old)}</span> → <span className="text-indigo-600">{String((val as any).new)}</span>
+                                </div>
+                              )
+                            )
+                          ))}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           </div>
         </div>
