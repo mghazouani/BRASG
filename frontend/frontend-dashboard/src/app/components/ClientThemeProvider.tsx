@@ -1,13 +1,17 @@
 "use client";
-import { useEffect } from "react";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
 
 export default function ClientThemeProvider({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const isDark = localStorage.getItem("theme") === "dark";
-      document.documentElement.classList.toggle("dark", isDark);
-    }
-  }, []);
+  // Mode light forcé
+  const theme = createTheme({
+    palette: { mode: "light" },
+  });
 
-  return <>{children}</>;
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      {children}
+    </ThemeProvider>
+  );
 }

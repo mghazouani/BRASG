@@ -7,7 +7,6 @@ import Divider from "@mui/material/Divider";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import Logout from "@mui/icons-material/Logout";
 import Person from "@mui/icons-material/Person";
-import DarkMode from "@mui/icons-material/DarkMode";
 import Settings from "@mui/icons-material/Settings";
 import { jwtDecode } from "jwt-decode";
 import Tooltip from "@mui/material/Tooltip";
@@ -113,12 +112,12 @@ export default function UserMenu({ onToggleTheme }: { onToggleTheme?: () => void
           </ListItemIcon>
           Paramètres
         </MenuItem>
-        <MenuItem onClick={onToggleTheme}>
+        {/* <MenuItem onClick={onToggleTheme}>
           <ListItemIcon>
             <DarkMode fontSize="small" />
           </ListItemIcon>
           Basculer le thème
-        </MenuItem>
+        </MenuItem> */}
         <MenuItem onClick={handleLogout}>
           <ListItemIcon>
             <Logout fontSize="small" />

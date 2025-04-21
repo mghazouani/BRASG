@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework import routers
-from .views_api import ClientViewSet, AuditLogViewSet, MeView, MeUpdateView, ChangePasswordView, CustomTokenObtainPairView, DeleteAvatarView, VilleViewSet
+from .views_api import ClientViewSet, AuditLogViewSet, MeView, MeUpdateView, ChangePasswordView, CustomTokenObtainPairView, DeleteAvatarView, VilleViewSet, adoption_kpis
 
 router = routers.DefaultRouter()
 router.register(r'clients', ClientViewSet)
@@ -14,4 +14,5 @@ urlpatterns = [
     path('api/me/avatar/', DeleteAvatarView.as_view(), name='delete-avatar'),
     path('api/change-password/', ChangePasswordView.as_view(), name='change-password'),
     path('api/token/', CustomTokenObtainPairView.as_view(), name='custom_token_obtain_pair'),
+    path('api/kpi/adoption/', adoption_kpis, name='kpi-adoption'),
 ]

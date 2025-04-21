@@ -17,9 +17,6 @@ import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import ClientFilters from "./ClientFilters";
 import ClientEditForm from "./ClientEditForm";
-import UserInfo from "../components/UserInfo";
-import UserMenu from "../components/UserMenu";
-import ThemeToggle from "../components/ThemeToggle";
 import PaginationBar from "../components/PaginationBar"; // Import PaginationBar
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
@@ -136,10 +133,13 @@ export default function DashboardPage() {
       setAuditLogs([]);
       return;
     }
+    // Appel API filtré côté backend (déjà ok), mais on filtre aussi côté frontend par sécurité
     api.get("auditlogs/", { params: { table_name: "Client", record_id: selectedClient.id } })
       .then(res => {
         const data = Array.isArray(res.data) ? res.data : res.data.results;
-        setAuditLogs(data as AuditLogType[]);
+        // Double filtre côté frontend pour éviter tout bug d'affichage
+        const filtered = (data as AuditLogType[]).filter(log => log.table_name === "Client" && log.record_id === selectedClient.id);
+        setAuditLogs(filtered);
       })
       .catch(console.error);
   }, [selectedClient]);
@@ -519,14 +519,12 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen flex flex-col items-center p-8 transition-colors duration-300" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
+      {/* <KpiAdoptionCard /> */}
       <div className="flex justify-between items-center w-full mb-6 fade-in">
         <div className="flex items-center gap-4">
-          <UserMenu />
           <h1 className="text-3xl font-bold text-blue-800 dark:text-blue-200">Suivi Déploiement ASG</h1>
-          <UserInfo />
         </div>
         <div className="flex items-center gap-2">
-          <ThemeToggle />
         </div>
       </div>
       <ClientFilters

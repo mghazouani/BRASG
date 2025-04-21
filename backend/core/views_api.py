@@ -16,6 +16,8 @@ from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAdminUser
 
 class ClientPageNumberPagination(PageNumberPagination):
     page_size = 50
@@ -65,11 +67,19 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AuditLog.objects.all()
     serializer_class = AuditLogSerializer
     permission_classes = [permissions.IsAdminUser]
-    # Filtrer l'historique par table et enregistrement
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['table_name', 'record_id']
     ordering_fields = ['timestamp']
     ordering = ['-timestamp']
+
+    def get_queryset(self):
+        queryset = AuditLog.objects.all()
+        # Filtrage automatique pour n'afficher que l'historique du client demandé (si précisé)
+        record_id = self.request.query_params.get('record_id')
+        table_name = self.request.query_params.get('table_name', 'Client')
+        if record_id:
+            queryset = queryset.filter(table_name=table_name, record_id=record_id)
+        return queryset
 
 class VilleViewSet(viewsets.ReadOnlyModelViewSet):
     """API pour lister les villes"""
@@ -140,3 +150,37 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def adoption_kpis(request):
+    total = Client.objects.count()
+    if total == 0:
+        return Response({
+            "pct_installed": 0,
+            "pct_up_to_date": 0,
+            "avg_days_to_install": None,
+            "total": 0
+        })
+    installed = Client.objects.filter(app_installee=True).count()
+    # Détection de la dernière version déployée
+    latest_version = Client.objects.exclude(maj_app__isnull=True).order_by('-maj_app').values_list('maj_app', flat=True).first()
+    up_to_date = Client.objects.filter(app_installee=True, maj_app=latest_version).count()
+    # Date d'installation via audit log (si dispo)
+    from core.models import AuditLog
+    from django.db.models import Min
+    delays = []
+    install_logs = AuditLog.objects.filter(table_name='Client', champs_changes__app_installee__new=True)
+    install_dates = install_logs.values('record_id').annotate(first_install=Min('timestamp'))
+    for entry in install_dates:
+        client = Client.objects.filter(id=entry['record_id']).first()
+        if client and hasattr(client, 'date_creation') and client.date_creation and entry['first_install']:
+            delta = (entry['first_install'].date() - client.date_creation.date()).days
+            delays.append(delta)
+    avg_days_to_install = sum(delays) / len(delays) if delays else None
+    return Response({
+        "pct_installed": round(installed / total * 100, 2),
+        "pct_up_to_date": round(up_to_date / total * 100, 2),
+        "avg_days_to_install": avg_days_to_install,
+        "total": total
+    })
