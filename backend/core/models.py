@@ -134,6 +134,11 @@ class Ville(models.Model):
 
 class ImportFichier(models.Model):
     fichier = models.FileField(upload_to='imports_clients/')
+    target_model = models.CharField(
+        max_length=20,
+        choices=[('clients','Clients'),('villes','Villes')],
+        default='clients'
+    )
     date_import = models.DateTimeField(auto_now_add=True)
     utilisateur = models.ForeignKey('User', on_delete=models.SET_NULL, null=True)
     resultat = models.TextField(null=True, blank=True)
@@ -144,16 +149,39 @@ class ImportFichier(models.Model):
         # Déclenche l'import réel si le fichier vient d'être ajouté
         if self.fichier and not self.termine:
             import pandas as pd
-            from .models import Client
+            import numpy as np
+            # modèles disponibles
+            from .models import Client, Ville
+            # utilitaires pour nettoyage des valeurs
+            def safe_str(val, default=''):
+                if pd.isna(val):
+                    return default
+                return str(val)
+            def safe_bool(val):
+                if pd.isna(val):
+                    return False
+                if isinstance(val, bool):
+                    return val
+                return str(val).strip().lower() in ['true','1','oui','vrai','yes']
             try:
-                champs_attendus = [
-                    'sap_id','nom_client','telephone','langue','statut_general','notification_client','date_notification',
-                    'a_demande_aide','nature_aide','app_installee','maj_app','commentaire_agent','segment_client','region','ville','canal_contact','relance_planifiee'
-                ]
+                # chargement des données
                 if self.fichier.name.endswith('.csv'):
                     df = pd.read_csv(self.fichier)
                 else:
                     df = pd.read_excel(self.fichier)
+                # choix du modèle cible
+                if self.target_model == 'clients':
+                    champs_attendus = [
+                        'sap_id','nom_client','telephone','langue','statut_general','notification_client','date_notification',
+                        'a_demande_aide','nature_aide','app_installee','maj_app','commentaire_agent','segment_client','region','ville','canal_contact','relance_planifiee'
+                    ]
+                elif self.target_model == 'villes':
+                    champs_attendus = ['nom','latitude','longitude','pays','iso2','region']
+                else:
+                    self.resultat = f"Modèle d'import inconnu : {self.target_model}"
+                    self.termine = True
+                    super().save(update_fields=['resultat','termine'])
+                    return
                 # Validation stricte de l'en-tête
                 missing = [col for col in champs_attendus if col not in df.columns]
                 extra = [col for col in df.columns if col not in champs_attendus]
@@ -164,19 +192,12 @@ class ImportFichier(models.Model):
                     return
                 if extra:
                     self.resultat = f"Avertissement : Colonnes inconnues ignorées : {', '.join(extra)}"
-                import numpy as np
-                def safe_str(val, default=''):
-                    if pd.isna(val):
-                        return default
-                    return str(val)
-                def safe_bool(val):
-                    if pd.isna(val):
-                        return False
-                    if isinstance(val, bool):
-                        return val
-                    return str(val).strip().lower() in ['true','1','oui','vrai','yes']
                 erreurs_lignes = []
-                champs_obligatoires = ['sap_id', 'nom_client', 'telephone']
+                # Champs obligatoires selon le modèle cible
+                if self.target_model == 'clients':
+                    champs_obligatoires = ['sap_id', 'nom_client', 'telephone']
+                else:
+                    champs_obligatoires = ['nom', 'latitude', 'longitude', 'pays', 'iso2', 'region']
                 # Prévalidation de toutes les lignes
                 for idx, row in df.iterrows():
                     champs_vides = [champ for champ in champs_obligatoires if not safe_str(row.get(champ, '')).strip()]
@@ -188,39 +209,64 @@ class ImportFichier(models.Model):
                     super().save(update_fields=["resultat", "termine"])
                     return
                 created, updated = 0, 0
-                for _, row in df.iterrows():
-                    client, created_flag = Client.objects.update_or_create(
-                        sap_id=safe_str(row['sap_id']),
-                        defaults={
-                            'nom_client': safe_str(row.get('nom_client', '')),
-                            'telephone': safe_str(row.get('telephone', '')),
-                            'langue': safe_str(row.get('langue', 'francais')).lower() if safe_str(row.get('langue', '')) else 'francais',
-                            'statut_general': safe_str(row.get('statut_general', 'actif')).lower() if safe_str(row.get('statut_general', '')) else 'actif',
-                            'notification_client': safe_bool(row.get('notification_client', False)),
-                            'date_notification': safe_str(row.get('date_notification', None)) or None,
-                            'a_demande_aide': safe_bool(row.get('a_demande_aide', False)),
-                            'nature_aide': safe_str(row.get('nature_aide', '')),
-                            'app_installee': safe_bool(row.get('app_installee', False)),
-                            'maj_app': safe_str(row.get('maj_app', '')),
-                            'commentaire_agent': safe_str(row.get('commentaire_agent', '')),
-                            'segment_client': safe_str(row.get('segment_client', '')),
-                            'ville': safe_str(row.get('ville', '')),
-                            'canal_contact': safe_str(row.get('canal_contact', '')),
-                            'relance_planifiee': safe_bool(row.get('relance_planifiee', False)),
-                            'cree_par_user': self.utilisateur,
-                            'modifie_par_user': self.utilisateur,
-                        }
-                    )
-                    client._current_user = self.utilisateur
-                    client.save()
-                    if created_flag:
-                        created += 1
-                    else:
-                        updated += 1
-                if not extra:
-                    self.resultat = (self.resultat or '') + f"\nImport terminé : {created} créés, {updated} mis à jour."
+                # traitement des lignes selon cible
+                if self.target_model == 'clients':
+                    for _, row in df.iterrows():
+                        client, created_flag = Client.objects.update_or_create(
+                            sap_id=safe_str(row['sap_id']),
+                            defaults={
+                                'nom_client': safe_str(row.get('nom_client', '')),
+                                'telephone': safe_str(row.get('telephone', '')),
+                                'langue': safe_str(row.get('langue', 'francais')).lower() if safe_str(row.get('langue', '')) else 'francais',
+                                'statut_general': safe_str(row.get('statut_general', 'actif')).lower() if safe_str(row.get('statut_general', '')) else 'actif',
+                                'notification_client': safe_bool(row.get('notification_client', False)),
+                                'date_notification': safe_str(row.get('date_notification', None)) or None,
+                                'a_demande_aide': safe_bool(row.get('a_demande_aide', False)),
+                                'nature_aide': safe_str(row.get('nature_aide', '')),
+                                'app_installee': safe_bool(row.get('app_installee', False)),
+                                'maj_app': safe_str(row.get('maj_app', '')),
+                                'commentaire_agent': safe_str(row.get('commentaire_agent', '')),
+                                'segment_client': safe_str(row.get('segment_client', '')),
+                                'ville': Ville.objects.filter(nom__iexact=safe_str(row.get('ville', ''))).first(),
+                                'canal_contact': safe_str(row.get('canal_contact', '')),
+                                'relance_planifiee': safe_bool(row.get('relance_planifiee', False)),
+                                'cree_par_user': self.utilisateur,
+                                'modifie_par_user': self.utilisateur,
+                            }
+                        )
+                        client._current_user = self.utilisateur
+                        client.save()
+                        if created_flag:
+                            created += 1
+                        else:
+                            updated += 1
+                elif self.target_model == 'villes':
+                    for _, row in df.iterrows():
+                        nom = safe_str(row.get('nom',''))
+                        latitude = float(row.get('latitude') or 0)
+                        longitude = float(row.get('longitude') or 0)
+                        pays = safe_str(row.get('pays',''))
+                        iso2 = safe_str(row.get('iso2',''))
+                        region = safe_str(row.get('region',''))
+                        ville, flag = Ville.objects.update_or_create(
+                            nom=nom,
+                            defaults={
+                                'latitude': latitude,
+                                'longitude': longitude,
+                                'pays': pays,
+                                'iso2': iso2,
+                                'region': region,
+                            }
+                        )
+                        if flag:
+                            created += 1
+                        else:
+                            updated += 1
+                # résumé de l'import
+                if self.target_model == 'clients':
+                    self.resultat = (self.resultat or '') + f"\nImport clients terminé : {created} créés, {updated} mis à jour."
                 else:
-                    self.resultat += f"\nImport terminé : {created} créés, {updated} mis à jour."
+                    self.resultat = (self.resultat or '') + f"\nImport villes terminé : {created} créés, {updated} mis à jour."
                 self.termine = True
             except Exception as e:
                 self.resultat = f"Erreur lors de l'import : {e}"

@@ -1,0 +1,4 @@
+nom,latitude,longitude,pays,iso2,region
+# Exemple :
+Paris,48.8566,2.3522,France,FR,Île-de-France
+Marseille,43.2965,5.3698,France,FR,Provence-Alpes-Côte d'Azur
