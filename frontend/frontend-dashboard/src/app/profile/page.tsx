@@ -117,10 +117,10 @@ export default function ProfilePage() {
     <main className="min-h-screen flex flex-col items-center justify-center p-8 transition-colors duration-300" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
       <div className="flex flex-col items-center gap-6 w-full max-w-md fade-in card">
         <div className="w-full flex items-center justify-start mb-2">
-          <Link href="/dashboard">
+          <Link href="/kpi">
             <button className="flex items-center gap-2 text-blue-700 dark:text-blue-200 hover:underline font-medium transition-colors">
               <ArrowBack />
-              Retour au dashboard
+              Retour au Dashboard
             </button>
           </Link>
         </div>

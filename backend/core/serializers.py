@@ -100,6 +100,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'username', 'email', 'role', 'is_active', 'created_at', 'last_login',
+            'first_name', 'last_name',
             'image_profil', 'image_profil_small', 'image_profil_medium', 'image_profil_large'
         ]
 
@@ -133,7 +134,7 @@ class ClientSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Client
-        fields = '__all__'
+        fields = '__all__'  # Les nouveaux champs seront automatiquement exposés
 
 class AuditLogSerializer(serializers.ModelSerializer):
     user = serializers.SlugRelatedField(slug_field='username', read_only=True)

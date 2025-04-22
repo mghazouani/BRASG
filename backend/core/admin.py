@@ -51,7 +51,7 @@ class ClientAdmin(admin.ModelAdmin):
     readonly_fields = ('date_creation', 'date_derniere_maj', 'region')
     # Ordre des champs et inclusion explicite de 'ville' et 'region'
     fields = (
-        'sap_id', 'nom_client', 'telephone', 'langue', 'statut_general',
+        'sap_id', 'nom_client', 'telephone', 'telephone2', 'telephone3', 'langue', 'statut_general',
         'notification_client', 'date_notification', 'action', 'a_demande_aide',
         'nature_aide', 'app_installee', 'maj_app', 'commentaire_agent',
         'segment_client', 'ville', 'region', 'canal_contact',
@@ -96,6 +96,8 @@ class ClientAdmin(admin.ModelAdmin):
                         defaults = {
                             'nom_client': row.get('nom_client', ''),
                             'telephone': row.get('telephone', ''),
+                            'telephone2': row.get('telephone2', ''),
+                            'telephone3': row.get('telephone3', ''),
                             'langue': row.get('langue', 'francais'),
                             'statut_general': row.get('statut_general', 'actif'),
                             'notification_client': bool(row.get('notification_client', False)),
@@ -149,6 +151,8 @@ class ImportFichierAdmin(admin.ModelAdmin):
             'sap_id': {'required': True, 'type': 'Texte (unique, non vide)'},
             'nom_client': {'required': True, 'type': 'Texte (non vide)'},
             'telephone': {'required': True, 'type': 'Texte (non vide)'},
+            'telephone2': {'required': False, 'type': 'Texte'},
+            'telephone3': {'required': False, 'type': 'Texte'},
             'langue': {'required': False, 'type': 'Enum (arabe/francais)'},
             'statut_general': {'required': False, 'type': 'Enum (actif/inactif/bloque)'},
             'notification_client': {'required': False, 'type': 'Booléen'},

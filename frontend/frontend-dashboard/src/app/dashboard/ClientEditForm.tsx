@@ -27,6 +27,8 @@ interface Client {
   sap_id: string;
   nom_client: string;
   telephone: string;
+  telephone2?: string | null;
+  telephone3?: string | null;
   langue: string;
   statut_general: string;
   notification_client: boolean;
@@ -80,6 +82,8 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
   const fieldsOrder: { key: keyof Client; label: string; type?: string; options?: any[] }[] = [
     { key: 'nom_client', label: 'Nom' },
     { key: 'telephone', label: 'Téléphone' },
+    { key: 'telephone2', label: 'Téléphone 2' },
+    { key: 'telephone3', label: 'Téléphone 3' },
     { key: 'langue', label: 'Langue', type: 'select', options: settings.langue },
     { key: 'statut_general', label: 'Statut', type: 'select', options: settings.statut_general },
     { key: 'canal_contact', label: 'Canal contact', type: 'select', options: settings.canal_contact },

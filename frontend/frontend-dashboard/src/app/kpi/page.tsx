@@ -10,7 +10,7 @@ export default function KpiPage() {
     <main className="min-h-screen flex flex-col items-center p-8 transition-colors duration-300" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
       <div className="flex justify-between items-center w-full mb-6 fade-in">
         <div className="flex items-center gap-4">
-          <Typography variant="h4" gutterBottom>Indicateurs de performance</Typography>
+        {/* Titre supprimé */}
         </div>
         <div className="flex items-center gap-2">
         </div>

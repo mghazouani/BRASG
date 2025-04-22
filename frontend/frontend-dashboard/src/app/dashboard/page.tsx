@@ -25,12 +25,22 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Autocomplete from "@mui/material/Autocomplete";
 import SmartphoneIcon from "@mui/icons-material/Smartphone";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import CampaignIcon from "@mui/icons-material/Campaign";
+import PhoneInTalkIcon from "@mui/icons-material/PhoneInTalk"; // Import PhoneInTalkIcon
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import PhoneCallbackIcon from "@mui/icons-material/PhoneCallback"; // Import PhoneCallbackIcon
 
 interface Client {
   id: string;
   sap_id: string;
   nom_client: string;
   telephone: string;
+  telephone2?: string | null;
+  telephone3?: string | null;
   langue: string;
   statut_general: string;
   notification_client: boolean;
@@ -82,7 +92,6 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statut, setStatut] = useState("");
-  const [region, setRegion] = useState("");
   const [langue, setLangue] = useState<string>("");
   const [aide, setAide] = useState<string>("");
   const [app, setApp] = useState<string>("");
@@ -95,7 +104,6 @@ export default function DashboardPage() {
   const [inlineEditLoading, setInlineEditLoading] = useState(false);
   const [inlineEditError, setInlineEditError] = useState<string | null>(null);
   const [totalClients, setTotalClients] = useState(0);
-  const [villes, setVilles] = useState<VilleType[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogType[]>([]);
 
   // Chargement dynamique des paramètres du Dashboard
@@ -120,12 +128,6 @@ export default function DashboardPage() {
     api.get('dashboard-configs/').then(res => {
       if (res.data.length > 0) setDashboardSettings(res.data[0].settings);
     }).catch(console.error);
-  }, []);
-  useEffect(() => {
-    api.get("villes/").then(res => {
-      const data = Array.isArray(res.data) ? res.data : res.data.results;
-      setVilles(data as VilleType[]);
-    });
   }, []);
   // Charger l’historique des modifications à chaque sélection
   useEffect(() => {
@@ -164,7 +166,7 @@ export default function DashboardPage() {
   // Remettre la page à 1 si perPage, search, statut, langue, aide, app ou region changent
   useEffect(() => {
     setPage(1);
-  }, [perPage, search, statut, langue, aide, app, region]);
+  }, [perPage, search, statut, langue, aide, app]);
 
   // Sécuriser la page courante si > totalPages
   useEffect(() => {
@@ -179,13 +181,12 @@ export default function DashboardPage() {
     });
     if (search) params.append("search", search);
     if (statut) params.append("statut_general", statut);
-    if (region) params.append("region", region);
     if (langue) params.append("langue", langue);
     if (aide) params.append("a_demande_aide", aide);
     if (app) params.append("app_installee", app);
     if (ordering) params.append("ordering", ordering);
     console.log("[API] clients/?" + params.toString());
-  }, [page, perPage, search, statut, region, langue, aide, app, ordering]);
+  }, [page, perPage, search, statut, langue, aide, app, ordering]);
 
   // Helper pour calculer relance automatique : si app non installée, date_notification vide, antérieure à aujourd’hui ou aide demandée
   const shouldRelance = (c: Client): boolean => {
@@ -219,7 +220,6 @@ export default function DashboardPage() {
     });
     if (search) params.append("search", search);
     if (statut) params.append("statut_general", statut);
-    if (region) params.append("region", region);
     if (langue) params.append("langue", langue);
     if (aide) params.append("a_demande_aide", aide);
     if (app) params.append("app_installee", app);
@@ -244,7 +244,7 @@ export default function DashboardPage() {
       })
       .catch((err) => setError(err.response?.data?.detail || "Erreur API"))
       .finally(() => setLoading(false));
-  }, [page, perPage, search, statut, region, langue, aide, app, ordering]);
+  }, [page, perPage, search, statut, langue, aide, app, ordering]);
 
   const handlePageChange = (_: any, value: number) => {
     setPage(value);
@@ -267,30 +267,43 @@ export default function DashboardPage() {
     }
   };
 
-  // Liste unique des régions pour le filtre (à calculer sur tous les clients si besoin)
-  // Ici, on laisse tel quel pour la démo, mais en prod il faudrait une API dédiée ou un champ distinct
-  const regions = useMemo(() => Array.from(new Set(clients.map(c => c.region).filter(Boolean) as string[])), [clients]);
-
   // Ordre des champs et logique d'affichage/édition
   const fieldsOrder: { key: keyof Client; label: string }[] = [
     { key: 'nom_client', label: 'Nom' },
     { key: 'sap_id', label: 'SAP ID' },
     { key: 'telephone', label: 'Téléphone' },
-    { key: 'langue', label: 'Langue' },
+    //{ key: 'langue', label: 'Langue' },
     { key: 'statut_general', label: 'Statut' },
     { key: 'canal_contact', label: 'Canal contact' },
-    { key: 'notification_client', label: 'Notification client' },
+    { key: 'notification_client', label: 'Notifié' },
     { key: 'date_notification', label: 'Date notification' },
-    { key: 'app_installee', label: 'App installée' },
+    { key: 'app_installee', label: 'App' },
     { key: 'maj_app', label: 'MàJ App' },
     { key: 'a_demande_aide', label: 'Aide' },
-    { key: 'nature_aide', label: 'Nature aide' },
+    //{ key: 'nature_aide', label: 'Nature aide' },
     { key: 'commentaire_agent', label: 'Commentaire' },
-    { key: 'ville', label: 'Ville' },
-    { key: 'region', label: 'Région' },
     { key: 'segment_client', label: 'CMD/Jour' },
     { key: 'relance_planifiee', label: 'Relance' },
   ];
+
+  // Utilitaire pour agrandir la taille des tooltips (NOUVEAU STYLE)
+  const largeTooltipProps = {
+    componentsProps: {
+      tooltip: {
+        sx: {
+          fontSize: '1rem',
+          padding: '10px 15px',
+          maxWidth: 300,
+          backgroundColor: '#333',
+          color: '#fff',
+          borderRadius: '8px',
+          boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.2)',
+          lineHeight: 1.5,
+          whiteSpace: 'normal',
+        },
+      },
+    },
+  };
 
   const renderCell = (client: Client, field: keyof Client): React.ReactNode => {
     const isEditing = inlineEditId === client.id;
@@ -298,15 +311,27 @@ export default function DashboardPage() {
       case 'nom_client': return client.nom_client;
       case 'sap_id': return client.sap_id;
       case 'telephone':
-        return isEditing
-          ? <TextField size="small" value={inlineEditData.telephone || ''} onChange={e => setInlineEditData(d => ({ ...d, telephone: e.target.value }))} />
-          : client.telephone;
+        if (isEditing) {
+          return <TextField size="small" value={inlineEditData.telephone || ''} onChange={e => setInlineEditData(d => ({ ...d, telephone: e.target.value }))} />;
+        }
+        // Affichage du numéro principal + icône si d'autres numéros
+        const hasSecond = !!client.telephone2;
+        const hasThird = !!client.telephone3;
+        const tooltip = [client.telephone2, client.telephone3].filter(Boolean).join(' / ');
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: hasSecond || hasThird ? 'space-between' : 'flex-start' }}>
+            <span>{client.telephone}</span>
+            {(hasSecond || hasThird) && (
+              <Tooltip {...largeTooltipProps} title={tooltip} placement="top">
+                <AddCircleOutlineIcon fontSize="small" sx={{ color: '#1976d2', ml: 0.5, verticalAlign: 'middle', cursor: 'pointer' }} />
+              </Tooltip>
+            )}
+          </div>
+        );
       case 'langue':
         return isEditing
-          ? <TextField size="small" select value={inlineEditData.langue || ''} onChange={e => setInlineEditData(d => ({ ...d, langue: e.target.value }))}>
-              {langueChoices.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
-            </TextField>
-          : (langueChoices.find(opt => opt.value === client.langue)?.label || <span className="text-gray-400">—</span>);
+          ? <TextField size="small" value={inlineEditData.langue || ''} onChange={e => setInlineEditData(d => ({ ...d, langue: e.target.value }))} />
+          : client.langue;
       case 'statut_general':
         return isEditing
           ? <TextField size="small" select value={inlineEditData.statut_general || ''} onChange={e => setInlineEditData(d => ({ ...d, statut_general: e.target.value }))}>
@@ -318,21 +343,29 @@ export default function DashboardPage() {
               color={statutColor(client.statut_general)}
             />;
       case 'canal_contact':
-        return isEditing
-          ? (
-              <TextField size="small" select value={inlineEditData.canal_contact || ''} onChange={e => setInlineEditData(d => ({ ...d, canal_contact: e.target.value }))}>
-                {dashboardSettings.canal_contact.map(opt => (
-                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                ))}
-              </TextField>
-            )
-          : (dashboardSettings.canal_contact.find(opt => opt.value === client.canal_contact)?.label || <span className="text-gray-400">—</span>);
+        // Affichage icône combiné téléphone ou WhatsApp selon la valeur
+        if (client.canal_contact === 'telephone') {
+          return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <PhoneInTalkIcon sx={{ color: '#00000', fontSize: 22 }} />
+            </div>
+          );
+        }
+        if (client.canal_contact === 'whatsapp') {
+          return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <WhatsAppIcon sx={{ color: '#25D366', fontSize: 22 }} />
+            </div>
+          );
+        }
+        return <span className="text-gray-400">—</span>;
       case 'notification_client':
-        return isEditing
-          ? <TextField size="small" select value={`${inlineEditData.notification_client}`} onChange={e => setInlineEditData(d => ({ ...d, notification_client: e.target.value === 'true' }))}>
-              {dashboardSettings.notification_client.map(opt => <MenuItem key={`${opt.value}`} value={`${opt.value}`}>{opt.label}</MenuItem>)}
-            </TextField>
-          : (client.notification_client ? "Oui" : "Non");
+        // Affichage icône mégaphone : vert si true, gris si false
+        return (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <CampaignIcon sx={{ color: client.notification_client ? '#43a047' : '#bdbdbd', fontSize: 24 }} />
+          </div>
+        );
       case 'date_notification':
         return isEditing
           ? <TextField size="small" type="date" value={inlineEditData.date_notification || ''} onChange={e => setInlineEditData(d => ({ ...d, date_notification: e.target.value }))} />
@@ -344,10 +377,22 @@ export default function DashboardPage() {
             </TextField>
           : (
               client.app_installee === false
-                ? <Tooltip title="App non installée"><SmartphoneIcon color="error" /></Tooltip>
+                ? <Tooltip {...largeTooltipProps} title="App non installée">
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
+                      <SmartphoneIcon color="error" />
+                    </div>
+                  </Tooltip>
                 : client.maj_app !== dashboardSettings.maj_app
-                  ? <Tooltip title={`App non à jour (installé: ${client.maj_app || 'inconnu'} / dernière: ${dashboardSettings.maj_app})`}><SmartphoneIcon color="warning" /></Tooltip>
-                  : <Tooltip title={`Dernière mise à jour : ${dashboardSettings.maj_app}`}><SmartphoneIcon color="success" /></Tooltip>
+                  ? <Tooltip {...largeTooltipProps} title={`App non à jour (installé: ${client.maj_app || 'inconnu'} / dernière: ${dashboardSettings.maj_app})`}>
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
+                        <SmartphoneIcon sx={{ color: '#FFD600' }} />
+                      </div>
+                    </Tooltip>
+                  : <Tooltip {...largeTooltipProps} title={`Dernière mise à jour : ${dashboardSettings.maj_app}`}>
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
+                        <SmartphoneIcon color="success" />
+                      </div>
+                    </Tooltip>
             );
       case 'maj_app':
         return isEditing
@@ -360,7 +405,7 @@ export default function DashboardPage() {
             </RadioGroup>
           : (
               client.a_demande_aide
-                ? <Tooltip title={client.nature_aide || "Aide demandée"}><HelpIcon className="text-yellow-500" /></Tooltip>
+                ? <Tooltip {...largeTooltipProps} title={client.nature_aide || "Aide demandée"}><HelpIcon className="text-yellow-500" /></Tooltip>
                 : null
             );
       case 'nature_aide':
@@ -372,7 +417,7 @@ export default function DashboardPage() {
           ? <TextField size="small" value={inlineEditData.commentaire_agent || ''} onChange={e => setInlineEditData(d => ({ ...d, commentaire_agent: e.target.value }))} />
           : (client.commentaire_agent
               ? (
-                  <Tooltip title={client.commentaire_agent}>
+                  <Tooltip {...largeTooltipProps} title={client.commentaire_agent}>
                     <span>
                       {client.commentaire_agent.slice(0,20)}{client.commentaire_agent.length > 20 ? '...' : ''}
                     </span>
@@ -380,28 +425,17 @@ export default function DashboardPage() {
                 )
               : <span className="text-gray-400">—</span>
             );
-      case 'ville':
-        return isEditing
-          ? <Autocomplete freeSolo options={villes.map(v=>v.nom)} value={inlineEditData.ville||''} onChange={(_,val)=>{const sel=villes.find(v=>v.nom===val);setInlineEditData(d=>({...d,ville:val||'',region:sel?.region||''}));}} renderInput={params=><TextField {...params} size="small" />} />
-          : client.ville || <span className="text-gray-400">—</span>;
-      case 'region':
-        return isEditing
-          ? <TextField size="small" value={inlineEditData.region||''} disabled />
-          : client.region || <span className="text-gray-400">—</span>;
       case 'segment_client':
         return isEditing
           ? <TextField size="small" value={inlineEditData.segment_client||''} onChange={e=>setInlineEditData(d=>({...d,segment_client:e.target.value}))} />
           : client.segment_client || <span className="text-gray-400">—</span>;
       case 'relance_planifiee':
-        return isEditing
-          ? <TextField size="small" select value={`${inlineEditData.relance_planifiee}`} onChange={e => setInlineEditData(d => ({ ...d, relance_planifiee: e.target.value==='true' }))}>
-              <MenuItem value="true">Oui</MenuItem><MenuItem value="false">Non</MenuItem>
-            </TextField>
-          : (
-              client.relance_planifiee
-                ? <Tooltip title="Relance planifiée"><CallIcon color="primary" /></Tooltip>
-                : <Tooltip title="Pas de relance"><CallIcon className="text-gray-400" /></Tooltip>
-          );
+        // Icône relance d'appel
+        return (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <PhoneCallbackIcon sx={{ color: client.relance_planifiee ? '#f9a825' : '#bdbdbd', fontSize: 22 }} />
+          </div>
+        );
       default:
         return client[field] as React.ReactNode;
     }
@@ -517,12 +551,14 @@ export default function DashboardPage() {
     }
   }
 
+  // --- Ajout style zebra pour lignes du tableau ---
+  const zebraBlue = ['#e3f2fd', '#bbdefb'];
+
   return (
     <main className="min-h-screen flex flex-col items-center p-8 transition-colors duration-300" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
-      {/* <KpiAdoptionCard /> */}
+      {/* En-tête supprimé : titre Dashboard */}
       <div className="flex justify-between items-center w-full mb-6 fade-in">
         <div className="flex items-center gap-4">
-          <h1 className="text-3xl font-bold text-blue-800 dark:text-blue-200">Suivi Déploiement ASG</h1>
         </div>
         <div className="flex items-center gap-2">
         </div>
@@ -532,9 +568,6 @@ export default function DashboardPage() {
         onSearch={setSearch}
         statut={statut}
         onStatut={setStatut}
-        region={region}
-        onRegion={setRegion}
-        regions={regions}
         langue={langue}
         onLangue={setLangue}
         langues={langueChoices}
@@ -583,22 +616,22 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {clients.map(client => (
-                    <tr key={client.id} className="border-b hover:bg-blue-50">
+                  {clients.map((client, idx) => (
+                    <tr key={client.id} style={{ background: zebraBlue[idx % 2] }}>
                       {fieldsOrder.map(col => (
                         <td key={col.key} className="p-2">{renderCell(client, col.key)}</td>
                       ))}
                       <td className="p-2 flex gap-1">
                         {inlineEditId === client.id ? (
                           <>
-                            <Tooltip title="Enregistrer">
+                            <Tooltip {...largeTooltipProps} title="Enregistrer">
                               <span>
                                 <IconButton size="small" onClick={saveInlineEdit} disabled={inlineEditLoading}>
                                   <SaveIcon fontSize="small" />
                                 </IconButton>
                               </span>
                             </Tooltip>
-                            <Tooltip title="Annuler">
+                            <Tooltip {...largeTooltipProps} title="Annuler">
                               <span>
                                 <IconButton size="small" onClick={cancelInlineEdit} disabled={inlineEditLoading}>
                                   <CancelIcon fontSize="small" />
@@ -608,17 +641,17 @@ export default function DashboardPage() {
                           </>
                         ) : (
                           <>
-                            <Tooltip title="Détails">
+                            <Tooltip {...largeTooltipProps} title="Détails">
                               <IconButton size="small" onClick={() => setSelectedClient(client)}>
                                 <VisibilityIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                            <Tooltip title="Modifier">
+                            <Tooltip {...largeTooltipProps} title="Modifier">
                               <IconButton size="small" onClick={() => setEditClient(client)}>
                                 <EditIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                            <Tooltip title="Édition rapide">
+                            <Tooltip {...largeTooltipProps} title="Édition rapide">
                               <IconButton size="small" onClick={() => startInlineEdit(client)}>
                                 <SaveIcon fontSize="small" color="action" />
                               </IconButton>
@@ -638,72 +671,80 @@ export default function DashboardPage() {
       <PaginationBar page={page} count={totalPages} onChange={handlePageChange} perPage={perPage} onPerPageChange={handlePerPageChange} />
       {/* Modal de détails client */}
       {selectedClient && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded shadow-lg p-8 w-[90vw] max-w-5xl max-h-[80vh] flex flex-col relative overflow-hidden">
-            <button
-              className="absolute top-2 right-2 text-gray-400 hover:text-blue-700 text-xl"
-              onClick={() => setSelectedClient(null)}
-            >
+        <Dialog
+          open={!!selectedClient}
+          onClose={() => setSelectedClient(null)}
+          maxWidth="md"
+          fullWidth
+          scroll="paper"
+          aria-labelledby="client-details-title"
+        >
+          <DialogTitle id="client-details-title" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 5 }}>
+            <span>Détails Suivi Client</span>
+            <IconButton aria-label="Fermer" onClick={() => setSelectedClient(null)} size="large">
               ×
-            </button>
-            <h2 className="text-2xl font-bold text-blue-800 mb-4">Détails client</h2>
-            <div className="flex flex-1 space-x-6 overflow-hidden">
-              {/* Partie gauche : détails client */}
-              <div className="w-1/2 space-y-2 overflow-y-auto">
-                <div><b>ID SAP:</b> {selectedClient.sap_id}</div>
-                <div><b>Nom:</b> {selectedClient.nom_client}</div>
-                <div><b>Téléphone:</b> {selectedClient.telephone}</div>
-                <div><b>Région:</b> {selectedClient.region || <span className="text-gray-400">—</span>}</div>
-                <div><b>Ville:</b> {selectedClient.ville || <span className="text-gray-400">—</span>}</div>
-                <div><b>Langue:</b> {selectedClient.langue}</div>
-                <div><b>Statut:</b> <Chip label={selectedClient.statut_general} size="small" color={statutColor(selectedClient.statut_general)} /></div>
-                <div><b>Notification client:</b> {selectedClient.notification_client ? "Oui" : "Non"}</div>
-                <div><b>Date notification:</b> {selectedClient.date_notification || <span className="text-gray-400">—</span>}</div>
-                <div><b>A demandé aide:</b> {selectedClient.a_demande_aide ? `Oui (${selectedClient.nature_aide || ''})` : "Non"}</div>
-                <div><b>App installée:</b> {selectedClient.app_installee === false ? "Non" : selectedClient.app_installee === true ? "Oui" : <span className="text-gray-400">—</span>}</div>
-                <div><b>MàJ app:</b> {selectedClient.maj_app || <span className="text-gray-400">—</span>}</div>
-                <div><b>Commentaire agent:</b> {selectedClient.commentaire_agent || <span className="text-gray-400">—</span>}</div>
-                <div><b>CMD/Jour:</b> {selectedClient.segment_client || <span className="text-gray-400">—</span>}</div>
-                <div><b>Canal contact:</b> {selectedClient.canal_contact || <span className="text-gray-400">—</span>}</div>
-                <div><b>Relance planifiée:</b> {selectedClient.relance_planifiee ? "Oui" : "Non"}</div>
-              </div>
-              {/* Partie droite : historique */}
-              <div className="w-1/2 space-y-2 overflow-y-auto">
-                <h3 className="text-xl font-semibold mb-2">Historique des changements</h3>
-                {auditLogs.length === 0 ? (
-                  <div className="text-gray-500">Aucun historique disponible.</div>
-                ) : (
-                  <ul className="list-disc list-inside max-h-64 overflow-auto">
-                    {auditLogs.map(log => (
-                      <li key={log.id} className="mb-2">
-                        <div>
-                          <span className="font-medium">{new Date(log.timestamp).toLocaleString()}</span> - {log.user} - {log.action}
-                        </div>
-                        <div className="text-sm text-gray-700 space-y-1">
-                          {Object.entries(log.champs_changes).map(([field, val]) => (
-                            React.isValidElement(val) ? val : (
-                              Array.isArray(val) ? (
-                                val.map((act, idx) => (
-                                  <div key={idx} className="ml-2">
-                                    • <b>{act.action}</b>: {act.reason} <span className="text-xs text-gray-500">({act.priorite})</span>
-                                  </div>
-                                ))
-                              ) : (
-                                <div key={field} className="ml-2">
-                                  • <b>{field}</b>: <span className="text-indigo-600">{String((val as any).old)}</span> → <span className="text-indigo-600">{String((val as any).new)}</span>
-                                </div>
-                              )
-                            )
-                          ))}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+            </IconButton>
+          </DialogTitle>
+          <DialogContent dividers sx={{ display: 'flex', gap: 3, minHeight: 300, maxHeight: '70vh', overflow: 'auto' }}>
+            {/* Partie gauche : détails client */}
+            <div style={{ width: '50%', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div><b>ID SAP:</b> {selectedClient.sap_id}</div>
+              <div><b>Nom:</b> {selectedClient.nom_client}</div>
+              <div><b>Téléphone:</b> {selectedClient.telephone}</div>
+              {selectedClient.telephone2 && (
+                <div><b>Téléphone 2:</b> {selectedClient.telephone2}</div>
+              )}
+              {selectedClient.telephone3 && (
+                <div><b>Téléphone 3:</b> {selectedClient.telephone3}</div>
+              )}
+              <div><b>Langue:</b> {selectedClient.langue}</div>
+              <div><b>Statut:</b> <Chip label={selectedClient.statut_general} size="small" color={statutColor(selectedClient.statut_general)} /></div>
+              <div><b>Notification client:</b> {selectedClient.notification_client ? "Oui" : "Non"}</div>
+              <div><b>Date notification:</b> {selectedClient.date_notification || <span className="text-gray-400">—</span>}</div>
+              <div><b>A demandé aide:</b> {selectedClient.a_demande_aide ? `Oui (${selectedClient.nature_aide || ''})` : "Non"}</div>
+              <div><b>App installée:</b> {selectedClient.app_installee === false ? "Non" : selectedClient.app_installee === true ? "Oui" : <span className="text-gray-400">—</span>}</div>
+              <div><b>MàJ app:</b> {selectedClient.maj_app || <span className="text-gray-400">—</span>}</div>
+              <div><b>Commentaire agent:</b> {selectedClient.commentaire_agent || <span className="text-gray-400">—</span>}</div>
+              <div><b>CMD/Jour:</b> {selectedClient.segment_client || <span className="text-gray-400">—</span>}</div>
+              <div><b>Canal contact:</b> {selectedClient.canal_contact || <span className="text-gray-400">—</span>}</div>
+              <div><b>Relance planifiée:</b> {selectedClient.relance_planifiee ? "Oui" : "Non"}</div>
             </div>
-          </div>
-        </div>
+            {/* Partie droite : historique */}
+            <div style={{ width: '50%', display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto' }}>
+              <h3 className="text-xl font-semibold mb-2">Historique des changements</h3>
+              {auditLogs.length === 0 ? (
+                <div className="text-gray-500">Aucun historique disponible.</div>
+              ) : (
+                <ul className="list-disc list-inside max-h-64 overflow-auto">
+                  {auditLogs.map(log => (
+                    <li key={log.id} className="mb-2">
+                      <div>
+                        <span className="font-medium">{new Date(log.timestamp).toLocaleString()}</span> - {log.user} - {log.action}
+                      </div>
+                      <div className="text-sm text-gray-700 space-y-1">
+                        {Object.entries(log.champs_changes).map(([field, val]) => (
+                          React.isValidElement(val) ? val : (
+                            Array.isArray(val) ? (
+                              val.map((act, idx) => (
+                                <div key={idx} className="ml-2">
+                                  • <b>{act.action}</b>: {act.reason} <span className="text-xs text-gray-500">({act.priorite})</span>
+                                </div>
+                              ))
+                            ) : (
+                              <div key={field} className="ml-2">
+                                • <b>{field}</b>: <span className="text-indigo-600">{String((val as any).old)}</span> → <span className="text-indigo-600">{String((val as any).new)}</span>
+                              </div>
+                            )
+                          )
+                        ))}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
       {/* Modal d'édition client */}
       {editClient && (

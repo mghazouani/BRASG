@@ -31,6 +31,8 @@ class Command(BaseCommand):
                 defaults={
                     'nom_client': row.get('nom_client', ''),
                     'telephone': row.get('telephone', ''),
+                    'telephone2': row.get('telephone2', ''),
+                    'telephone3': row.get('telephone3', ''),
                     'langue': row.get('langue', 'francais'),
                     'statut_general': row.get('statut_general', 'actif'),
                     'notification_client': bool(row.get('notification_client', False)),

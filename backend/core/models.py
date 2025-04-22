@@ -30,6 +30,8 @@ class Client(models.Model):
     sap_id = models.CharField(max_length=50, unique=True)
     nom_client = models.CharField(max_length=255)
     telephone = models.CharField(max_length=20)
+    telephone2 = models.CharField(max_length=20, blank=True, null=True)
+    telephone3 = models.CharField(max_length=20, blank=True, null=True)
     langue = models.CharField(max_length=20, choices=LANGUE_CHOICES)
     statut_general = models.CharField(max_length=20, choices=STATUT_CHOICES)
     notification_client = models.BooleanField(default=False)
@@ -213,7 +215,7 @@ class ImportFichier(models.Model):
                 # choix du modèle cible
                 if self.target_model == 'clients':
                     champs_attendus = [
-                        'sap_id','nom_client','telephone','langue','statut_general','notification_client','date_notification',
+                        'sap_id','nom_client','telephone','telephone2','telephone3','langue','statut_general','notification_client','date_notification',
                         'a_demande_aide','nature_aide','app_installee','maj_app','commentaire_agent','segment_client','region','ville','canal_contact','relance_planifiee'
                     ]
                 elif self.target_model == 'villes':
@@ -258,6 +260,8 @@ class ImportFichier(models.Model):
                             defaults={
                                 'nom_client': safe_str(row.get('nom_client', '')),
                                 'telephone': safe_str(row.get('telephone', '')),
+                                'telephone2': safe_str(row.get('telephone2', '')),
+                                'telephone3': safe_str(row.get('telephone3', '')),
                                 'langue': safe_str(row.get('langue', 'francais')).lower() if safe_str(row.get('langue', '')) else 'francais',
                                 'statut_general': safe_str(row.get('statut_general', 'actif')).lower() if safe_str(row.get('statut_general', '')) else 'actif',
                                 'notification_client': safe_bool(row.get('notification_client', False)),

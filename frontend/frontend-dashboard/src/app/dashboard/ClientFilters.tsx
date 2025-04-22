@@ -9,9 +9,6 @@ export interface ClientFiltersProps {
   onSearch: (val: string) => void;
   statut: string;
   onStatut: (val: string) => void;
-  region: string;
-  onRegion: (val: string) => void;
-  regions: string[];
   langue: string;
   onLangue: (val: string) => void;
   langues: { value: string; label: string }[];
@@ -23,7 +20,7 @@ export interface ClientFiltersProps {
   appOptions: { value: boolean; label: string }[];
 }
 
-export default function ClientFilters({ search, onSearch, statut, onStatut, region, onRegion, regions, langue, onLangue, langues, aide, onAide, aideOptions, app, onApp, appOptions }: ClientFiltersProps) {
+export default function ClientFilters({ search, onSearch, statut, onStatut, langue, onLangue, langues, aide, onAide, aideOptions, app, onApp, appOptions }: ClientFiltersProps) {
   return (
     <div className="flex flex-wrap gap-4 mb-4 items-end">
       <TextField
@@ -46,7 +43,7 @@ export default function ClientFilters({ search, onSearch, statut, onStatut, regi
         select
         value={statut}
         onChange={e => onStatut(e.target.value)}
-        className="w-36"
+        className="w-40"
       >
         <MenuItem value="">Tous</MenuItem>
         <MenuItem value="actif">Actif</MenuItem>
@@ -54,29 +51,16 @@ export default function ClientFilters({ search, onSearch, statut, onStatut, regi
         <MenuItem value="bloque">Bloqué</MenuItem>
       </TextField>
       <TextField
-        label="Région"
+        label="App installée"
         size="small"
         select
-        value={region}
-        onChange={e => onRegion(e.target.value)}
-        className="w-36"
+        value={app}
+        onChange={e => onApp(e.target.value)}
+        className="w-40"
       >
         <MenuItem value="">Toutes</MenuItem>
-        {regions.map(r => (
-          <MenuItem key={r} value={r}>{r}</MenuItem>
-        ))}
-      </TextField>
-      <TextField
-        label="Langue"
-        size="small"
-        select
-        value={langue}
-        onChange={e => onLangue(e.target.value)}
-        className="w-36"
-      >
-        <MenuItem value="">Toutes</MenuItem>
-        {langues.map(opt => (
-          <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+        {appOptions.map(opt => (
+          <MenuItem key={opt.value.toString()} value={`${opt.value}`}>{opt.label}</MenuItem>
         ))}
       </TextField>
       <TextField
@@ -85,7 +69,7 @@ export default function ClientFilters({ search, onSearch, statut, onStatut, regi
         select
         value={aide}
         onChange={e => onAide(e.target.value)}
-        className="w-36"
+        className="w-40"
       >
         <MenuItem value="">Toutes</MenuItem>
         {aideOptions.map(opt => (
@@ -93,16 +77,16 @@ export default function ClientFilters({ search, onSearch, statut, onStatut, regi
         ))}
       </TextField>
       <TextField
-        label="App installée"
+        label="Langue"
         size="small"
         select
-        value={app}
-        onChange={e => onApp(e.target.value)}
-        className="w-36"
+        value={langue}
+        onChange={e => onLangue(e.target.value)}
+        className="w-40"
       >
         <MenuItem value="">Toutes</MenuItem>
-        {appOptions.map(opt => (
-          <MenuItem key={opt.value.toString()} value={`${opt.value}`}>{opt.label}</MenuItem>
+        {langues.map(opt => (
+          <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
         ))}
       </TextField>
     </div>
