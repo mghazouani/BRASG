@@ -184,3 +184,28 @@ def adoption_kpis(request):
         "avg_days_to_install": avg_days_to_install,
         "total": total
     })
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def engagement_kpis(request):
+    from django.db.models import Q
+    total = Client.objects.count()
+    if total == 0:
+        return Response({
+            "pct_relance_planifiee": 0,
+            "pct_demande_aide": 0,
+            "pct_clients_notifies": 0,
+            "total": 0
+        })
+    relance = Client.objects.filter(relance_planifiee=True).count()
+    demande_aide = Client.objects.filter(a_demande_aide=True).count()
+    notifies = Client.objects.filter(notification_client=True).count()
+    pct_relance_planifiee = round(relance / total * 100, 2)
+    pct_demande_aide = round(demande_aide / total * 100, 2)
+    pct_clients_notifies = round(notifies / total * 100, 2)
+    return Response({
+        "pct_relance_planifiee": pct_relance_planifiee,
+        "pct_demande_aide": pct_demande_aide,
+        "pct_clients_notifies": pct_clients_notifies,
+        "total": total
+    })

@@ -1,7 +1,8 @@
 "use client";
 import React from "react";
 import KpiAdoptionCard from "../dashboard/KpiAdoptionCard";
-import { Container, Typography } from "@mui/material";
+import KpiEngagementCard from "../dashboard/KpiEngagementCard";
+import { Container, Typography, Box } from "@mui/material";
 
 export default function KpiPage() {
   return (
@@ -14,8 +15,10 @@ export default function KpiPage() {
         </div>
       </div>
       <Container maxWidth="md" sx={{ py: 6 }}>
-        <KpiAdoptionCard />
-        {/* Ajoute ici d'autres composants KPI si besoin */}
+        <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap={4} justifyContent="center" alignItems="stretch">
+          <KpiAdoptionCard />
+          <KpiEngagementCard />
+        </Box>
       </Container>
     </main>
   );
