@@ -20,15 +20,13 @@ export default function KpiAdoptionCard() {
   return (
     <Card
       sx={{
+        flex: 1,
         mb: 2,
         borderRadius: 3,
         boxShadow: '0 2px 14px 0 rgb(32 40 45 / 8%)',
         background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
         p: 2,
         border: '1px solid #e3e8ee',
-        minWidth: 350,
-        maxWidth: 460,
-        mx: 'auto',
       }}
     >
       <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 2 }}>
@@ -36,11 +34,10 @@ export default function KpiAdoptionCard() {
           Adoption de l’application
         </Typography>
         <KpiDonutChart pct_installed={kpi.pct_installed} pct_up_to_date={kpi.pct_up_to_date} />
-        <Box display="flex" flexDirection="column" alignItems="center" gap={0.5} mt={2}>
+        <Box display="flex" flexDirection="column" alignItems="left" gap={0.5} mt={2}>
           <Typography variant="body1" sx={{ fontWeight: 500 }}>Clients avec app installée : <b style={{ color: '#1976d2' }}>{kpi.pct_installed}%</b></Typography>
           <Typography variant="body1" sx={{ fontWeight: 500 }}>Clients à jour : <b style={{ color: '#43a047' }}>{kpi.pct_up_to_date}%</b></Typography>
           <Typography variant="body1" sx={{ fontWeight: 500 }}>Délai moyen d’installation : <b>{kpi.avg_days_to_install !== null ? `${kpi.avg_days_to_install} jours` : "—"}</b></Typography>
-          <Typography color="text.secondary" variant="caption" sx={{ mt: 0.5 }}>Total clients : {kpi.total}</Typography>
         </Box>
       </CardContent>
     </Card>

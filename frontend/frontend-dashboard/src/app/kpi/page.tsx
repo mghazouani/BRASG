@@ -2,6 +2,7 @@
 import React from "react";
 import KpiAdoptionCard from "../dashboard/KpiAdoptionCard";
 import KpiEngagementCard from "../dashboard/KpiEngagementCard";
+import KpiClientsCard from "../dashboard/KpiClientsCard";
 import { Container, Typography, Box } from "@mui/material";
 
 export default function KpiPage() {
@@ -15,9 +16,12 @@ export default function KpiPage() {
         </div>
       </div>
       <Container maxWidth="md" sx={{ py: 6 }}>
-        <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap={4} justifyContent="center" alignItems="stretch">
-          <KpiAdoptionCard />
-          <KpiEngagementCard />
+        <Box display="flex" flexDirection="column" gap={4} sx={{ width: '100%' }}>
+          <KpiClientsCard />
+          <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap={4} justifyContent="space-between" alignItems="stretch" sx={{ width: '100%' }}>
+            <KpiAdoptionCard />
+            <KpiEngagementCard />
+          </Box>
         </Box>
       </Container>
     </main>

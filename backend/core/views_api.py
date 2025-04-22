@@ -166,16 +166,22 @@ def adoption_kpis(request):
     # Détection de la dernière version déployée
     latest_version = Client.objects.exclude(maj_app__isnull=True).order_by('-maj_app').values_list('maj_app', flat=True).first()
     up_to_date = Client.objects.filter(app_installee=True, maj_app=latest_version).count()
-    # Date d'installation via audit log (si dispo)
+    # Délai moyen d'installation: date_install - date_notification (premiers logs)
     from core.models import AuditLog
     from django.db.models import Min
-    delays = []
+    # Dates d'installation (premier log app_installee=True)
     install_logs = AuditLog.objects.filter(table_name='Client', champs_changes__app_installee__new=True)
     install_dates = install_logs.values('record_id').annotate(first_install=Min('timestamp'))
+    # Dates de notification (premier log date_notification non NULL)
+    notify_logs = AuditLog.objects.filter(table_name='Client', champs_changes__date_notification__new__isnull=False)
+    notify_dates = notify_logs.values('record_id').annotate(first_notify=Min('timestamp'))
+    notify_map = {d['record_id']: d['first_notify'] for d in notify_dates}
+    delays = []
     for entry in install_dates:
-        client = Client.objects.filter(id=entry['record_id']).first()
-        if client and hasattr(client, 'date_creation') and client.date_creation and entry['first_install']:
-            delta = (entry['first_install'].date() - client.date_creation.date()).days
+        first_install = entry['first_install']
+        first_notify = notify_map.get(entry['record_id'])
+        if first_install and first_notify:
+            delta = (first_install.date() - first_notify.date()).days
             delays.append(delta)
     avg_days_to_install = sum(delays) / len(delays) if delays else None
     return Response({
@@ -208,4 +214,16 @@ def engagement_kpis(request):
         "pct_demande_aide": pct_demande_aide,
         "pct_clients_notifies": pct_clients_notifies,
         "total": total
+    })
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def clients_kpis(request):
+    total = Client.objects.count()
+    notified = Client.objects.filter(notification_client=True).count()
+    installed = Client.objects.filter(app_installee=True).count()
+    return Response({
+        "total": total,
+        "total_notified": notified,
+        "total_installed": installed,
     })
