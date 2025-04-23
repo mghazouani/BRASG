@@ -3,3 +3,9 @@ psycopg2-binary
 djangorestframework
 djangorestframework-simplejwt
 django-filter
+python-decouple
+dj-database-url
+pandas
+openpyxl
+Pillow
+django-cors-headers

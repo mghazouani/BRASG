@@ -1,6 +1,6 @@
 import axios from "axios";
 
-// À personnaliser selon ton backend Django
+// Utilise la variable d'environnement NEXT_PUBLIC_API_URL définie dans .env.local ou .env.production
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/";
 
 export const api = axios.create({
