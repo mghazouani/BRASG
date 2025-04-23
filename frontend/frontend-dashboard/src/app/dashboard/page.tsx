@@ -32,7 +32,7 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import CampaignIcon from "@mui/icons-material/Campaign";
 import PhoneInTalkIcon from "@mui/icons-material/PhoneInTalk"; // Import PhoneInTalkIcon
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
-import PhoneCallbackIcon from "@mui/icons-material/PhoneCallback"; // Import PhoneCallbackIcon
+import TimerIcon from "@mui/icons-material/Timer"; // Import TimerIcon
 
 interface Client {
   id: string;
@@ -274,7 +274,7 @@ export default function DashboardPage() {
     { key: 'telephone', label: 'Téléphone' },
     //{ key: 'langue', label: 'Langue' },
     { key: 'statut_general', label: 'Statut' },
-    { key: 'canal_contact', label: 'Canal contact' },
+    { key: 'canal_contact', label: 'Canal' },
     { key: 'notification_client', label: 'Notifié' },
     { key: 'date_notification', label: 'Date notification' },
     { key: 'app_installee', label: 'App' },
@@ -347,7 +347,7 @@ export default function DashboardPage() {
         if (client.canal_contact === 'telephone') {
           return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <PhoneInTalkIcon sx={{ color: '#00000', fontSize: 22 }} />
+              <PhoneInTalkIcon sx={{ color: '#25D366', fontSize: 22 }} />
             </div>
           );
         }
@@ -430,10 +430,10 @@ export default function DashboardPage() {
           ? <TextField size="small" value={inlineEditData.segment_client||''} onChange={e=>setInlineEditData(d=>({...d,segment_client:e.target.value}))} />
           : client.segment_client || <span className="text-gray-400">—</span>;
       case 'relance_planifiee':
-        // Icône relance d'appel
+        // Icône relance : timer orange si planifiée, gris sinon
         return (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <PhoneCallbackIcon sx={{ color: client.relance_planifiee ? '#f9a825' : '#bdbdbd', fontSize: 22 }} />
+            <TimerIcon sx={{ color: client.relance_planifiee ? '#fb8c00' : '#bdbdbd', fontSize: 22 }} />
           </div>
         );
       default:
@@ -617,7 +617,12 @@ export default function DashboardPage() {
                 </thead>
                 <tbody>
                   {clients.map((client, idx) => (
-                    <tr key={client.id} style={{ background: zebraBlue[idx % 2] }}>
+                    <tr
+                      key={client.id}
+                      style={{ background: zebraBlue[idx % 2], transition: 'background 0.2s', cursor: 'pointer' }}
+                      className="dashboard-row-hover"
+                      onDoubleClick={() => setSelectedClient(client)}
+                    >
                       {fieldsOrder.map(col => (
                         <td key={col.key} className="p-2">{renderCell(client, col.key)}</td>
                       ))}
@@ -758,6 +763,12 @@ export default function DashboardPage() {
           error={editError}
         />
       )}
+      <style>{`
+        .dashboard-row-hover:hover {
+          background: #FFFDE7 !important;
+          transition: background 0.2s;
+        }
+      `}</style>
     </main>
   );
 }
