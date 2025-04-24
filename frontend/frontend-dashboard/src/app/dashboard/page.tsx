@@ -33,6 +33,8 @@ import CampaignIcon from "@mui/icons-material/Campaign";
 import PhoneInTalkIcon from "@mui/icons-material/PhoneInTalk"; // Import PhoneInTalkIcon
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import TimerIcon from "@mui/icons-material/Timer"; // Import TimerIcon
+import ClientNotificationModal from "./ClientNotificationModal";
+import { Snackbar } from "@mui/material";
 
 interface Client {
   id: string;
@@ -105,6 +107,10 @@ export default function DashboardPage() {
   const [inlineEditError, setInlineEditError] = useState<string | null>(null);
   const [totalClients, setTotalClients] = useState(0);
   const [auditLogs, setAuditLogs] = useState<AuditLogType[]>([]);
+  const [notifModalOpen, setNotifModalOpen] = useState(false);
+  const [notifModalClient, setNotifModalClient] = useState<Client | null>(null);
+  const [notifToast, setNotifToast] = useState<{ open: boolean; message: string; severity: "success" | "error" }>({ open: false, message: "", severity: "success" });
+  const [editToast, setEditToast] = useState<{ open: boolean; message: string; severity: "success" | "error" }>({ open: false, message: "", severity: "success" });
 
   // Chargement dynamique des paramètres du Dashboard
   const [dashboardSettings, setDashboardSettings] = useState<{
@@ -433,7 +439,9 @@ export default function DashboardPage() {
         // Icône relance : timer orange si planifiée, gris sinon
         return (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <TimerIcon sx={{ color: client.relance_planifiee ? '#fb8c00' : '#bdbdbd', fontSize: 22 }} />
+            <IconButton onClick={() => handleOpenNotifModal(client)} color="primary">
+              <TimerIcon sx={{ color: client.relance_planifiee ? '#fb8c00' : '#bdbdbd', fontSize: 22 }} />
+            </IconButton>
           </div>
         );
       default:
@@ -463,14 +471,10 @@ export default function DashboardPage() {
           }
         }
       }
-      // Si aucun champ modifié, pas besoin d'Appel API
-      if (Object.keys(payload).length === 0) {
-        setEditLoading(false);
-        setEditClient(null);
-        return;
-      }
+      // DEBUG LOG pour vérifier le payload
+      console.log('[DEBUG][handleSaveEditClient] payload:', payload);
+      // SUPPRIME le blocage sur payload vide pour toujours envoyer la requête
       const res = await api.patch(`clients/${data.id}/`, payload);
-      // Remplace le client dans la liste
       setClients(clients => clients.map(c => c.id === data.id ? res.data : c));
       setEditClient(null);
       // Vérifier relance après modification via modal
@@ -550,6 +554,28 @@ export default function DashboardPage() {
       setInlineEditLoading(false);
     }
   }
+
+  // Fonction pour ouvrir la modale de notification depuis l'icône relance
+  const handleOpenNotifModal = (client: Client) => {
+    setNotifModalClient(client);
+    setNotifModalOpen(true);
+  };
+  const handleCloseNotifModal = () => {
+    setNotifModalOpen(false);
+    setNotifModalClient(null);
+  };
+
+  // Callback à passer à la modale pour affichage du toast après notification
+  const handleNotifSuccess = (message = "Notification enregistrée avec succès") => {
+    setNotifToast({ open: true, message, severity: message === "Erreur d'enregistrement" ? "error" : "success" });
+    handleCloseNotifModal();
+  };
+
+  // Toast pour l'édition de client
+  const handleEditClientToast = (message: string, severity: "success" | "error") => {
+    setEditToast({ open: true, message, severity });
+    setEditClient(null); // ferme la modale
+  };
 
   // --- Ajout style zebra pour lignes du tableau ---
   const zebraBlue = ['#e3f2fd', '#bbdefb'];
@@ -690,9 +716,9 @@ export default function DashboardPage() {
               ×
             </IconButton>
           </DialogTitle>
-          <DialogContent dividers sx={{ display: 'flex', gap: 3, minHeight: 300, maxHeight: '70vh', overflow: 'auto' }}>
+          <DialogContent dividers sx={{ display: 'flex', gap: 3, minHeight: 300, maxHeight: '100vh', overflow: 'auto' }}>
             {/* Partie gauche : détails client */}
-            <div style={{ width: '50%', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ width: '50%', display: 'flex', flexDirection: 'column', gap: 8 ,overflowY: 'auto', padding: '16px', height: '100%'}}>
               <div><b>ID SAP:</b> {selectedClient.sap_id}</div>
               <div><b>Nom:</b> {selectedClient.nom_client}</div>
               <div><b>Téléphone:</b> {selectedClient.telephone}</div>
@@ -712,15 +738,15 @@ export default function DashboardPage() {
               <div><b>Commentaire agent:</b> {selectedClient.commentaire_agent || <span className="text-gray-400">—</span>}</div>
               <div><b>CMD/Jour:</b> {selectedClient.segment_client || <span className="text-gray-400">—</span>}</div>
               <div><b>Canal contact:</b> {selectedClient.canal_contact || <span className="text-gray-400">—</span>}</div>
-              <div><b>Relance planifiée:</b> {selectedClient.relance_planifiee ? "Oui" : "Non"}</div>
+              {/*<div><b>Relance planifiée:</b> {selectedClient.relance_planifiee ? "Oui" : "Non"}</div>*/}
             </div>
-            {/* Partie droite : historique */}
-            <div style={{ width: '50%', display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto' }}>
-              <h3 className="text-xl font-semibold mb-2">Historique des changements</h3>
+            {/* Partie droite : historique des changements */}
+            <div style={{ width: '50%', display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto',  height: '100%' }}>
+              <h3 className="text-xl font-semibold mb-2 mt-6">Historique des changements</h3>
               {auditLogs.length === 0 ? (
                 <div className="text-gray-500">Aucun historique disponible.</div>
               ) : (
-                <ul className="list-disc list-inside max-h-64 overflow-auto">
+                <ul className="list-disc list-inside max-h-100 overflow-auto" style={{ flex: 1 }}>
                   {auditLogs.map(log => (
                     <li key={log.id} className="mb-2">
                       <div>
@@ -761,8 +787,38 @@ export default function DashboardPage() {
           onSave={handleSaveEditClient}
           loading={editLoading}
           error={editError}
+          onToast={handleEditClientToast}
         />
       )}
+      {notifModalClient && (
+        <ClientNotificationModal
+          open={notifModalOpen}
+          onClose={handleCloseNotifModal}
+          onSuccess={handleNotifSuccess}
+          clientId={notifModalClient.id}
+          clientName={notifModalClient.nom_client}
+        />
+      )}
+      <Snackbar
+        open={notifToast.open}
+        autoHideDuration={2500}
+        onClose={() => setNotifToast({ ...notifToast, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert severity={notifToast.severity} variant="filled" sx={{ width: "100%" }}>
+          {notifToast.message}
+        </Alert>
+      </Snackbar>
+      <Snackbar
+        open={editToast.open}
+        autoHideDuration={2500}
+        onClose={() => setEditToast({ ...editToast, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert severity={editToast.severity} variant="filled" sx={{ width: "100%" }}>
+          {editToast.message}
+        </Alert>
+      </Snackbar>
       <style>{`
         .dashboard-row-hover:hover {
           background: #FFFDE7 !important;

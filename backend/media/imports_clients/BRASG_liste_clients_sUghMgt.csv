@@ -1,0 +1,70 @@
+sap_id,nom_client,telephone,telephone2,telephone3,langue,statut_general,notification_client,date_notification,a_demande_aide,nature_aide,app_installee,maj_app,commentaire_agent,segment_client,region,ville,canal_contact,relance_planifiee
+100385,ABRAG GAZ,0661-311891,,,arabe,inactif,TRUE,2025-04-21,FALSE,,TRUE,1.2.1+22,Boite vocale,,,,telephone,FALSE
+100002,DRIOCHE/ACHOUR, 0673-678747,0616-875012,,arabe,inactif,TRUE,2025-04-21,FALSE,,FALSE,,Boite vocale,,,,telephone,FALSE
+100017,AKKA MOHAMED,0612-345682,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100193,AMAGOUR GAZ,0662-035198 ,0661-295559,,arabe,inactif,TRUE,2025-04-21,FALSE,,FALSE,,Ne sonne pas,,,,telephone,FALSE
+100019,AMASSOUL,0600-027582,0661-140065,,arabe,inactif,TRUE,2025-04-23,TRUE,Il a demandé le lien de l'app,FALSE,,Lien envoyé pour telecharger l'app/ ne répond pas,,,,telephone,FALSE
+100215,AOUAMA GAZ,0634-557968,0661-354438,,arabe,inactif,TRUE,2025-04-22,FALSE,,TRUE,1.3.0+31,Il vient de faire la mise à jour + la formation,,,,telephone,FALSE
+100025,ASMAA GAZ,0661-452708,,,arabe,inactif,TRUE,2025-04-21,FALSE,,FALSE,,Il ne sait pas passer les commandes. il va  deleguer une autre personne,,,,telephone,FALSE
+100180,ASSACA GAZ,0616-110990,,,arabe,inactif,TRUE,2025-04-22,FALSE,,TRUE,1.3.0+31,Il va faire la mise à jour / Il n'a pas encore mis à jour l'app. il doit rentrer à la maison,,,,telephone,FALSE
+100313,AZOURKED,0644-217373,,,arabe,inactif,FALSE,,FALSE,,TRUE,1.3.0+31,,,,,telephone,FALSE
+100026,BABA BRAHIM,0659-265275,,,arabe,actif,TRUE,2025-04-21,FALSE,,TRUE,1.3.2+34,OK,,,,telephone,FALSE
+100454,BARBARI GAZ,0681-134173,,,arabe,inactif,TRUE,2025-04-22,FALSE,,FALSE,,Lien envoyé pour telecharger l'app,,,,telephone,FALSE
+100201,BEN SEDDIK GAZ,0661-585478,0668-873654,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100136,BLEDI GAZ,0664-326241,,,arabe,inactif,FALSE,2025-04-22,FALSE,,FALSE,,Ne sonne pas/ vu sur wtp,,,,telephone,FALSE
+100040,BOUGHAZ GAZ,0634-557968,,,arabe,inactif,TRUE,2025-04-22,FALSE,,TRUE,1.3.0+31,BOUGHAZ = AOUAMA,,,,telephone,FALSE
+100441,CHIADMA GAZ,0661-808366,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100047,CHRAIBI YOUSSEF,0666-074582,,,arabe,actif,TRUE,2025-04-21,FALSE,,TRUE,1.3.2+34,OK,,,,telephone,FALSE
+100280,CITY GAZ,0664-468995,,,arabe,inactif,TRUE,2025-04-22,FALSE,,TRUE,1.2.5+26,Il va faire la mise à jour. demain je dois l'appeler pour la formation/  il va mettre à jour l'app et il va m'appeler,,,,telephone,FALSE
+100328,DAMNAT GAZ,0680-158959,,,arabe,inactif,TRUE,2025-04-22,FALSE,,FALSE,,Lien envoyé pour telecharger l'app,,,,telephone,FALSE
+100050,DEBBIOUI ABDELAZIZ,0661-406681,,,arabe,inactif,TRUE,2025-04-22,FALSE,,FALSE,,Aucune réponse,,,,telephone,FALSE
+100031,DIMASEF,0661-757614,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100052,EL ALAMI EL GHAZI,0031611-331873 ,,,arabe,inactif,TRUE,2025-04-22,FALSE,,FALSE,,,,,,telephone,FALSE
+100261,EL KADIRI FATIMA EZZAHRAA,0612-345711,0674-802946,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100341,EL MARRAKI MOHAMED,0696-529699,,,arabe,actif,FALSE,2025-04-21,FALSE,,TRUE,1.3.2+34,OK,,,,telephone,FALSE
+100177,EQUIPE DISTRIBUTION,0661-717214,,,arabe,inactif,FALSE,,FALSE,,TRUE,1.3.0+31,,,,,telephone,FALSE
+100335,EXTRA GAZ,0661-406406,,,arabe,inactif,FALSE,,FALSE,,TRUE,,GAZ WALID = EXTRA GAZ,,,,telephone,FALSE
+100265,FADL GAZ,0661-711439,0668-843898,,arabe,inactif,TRUE,2025-04-22,FALSE,,TRUE,1.2.7+28,Il va faire la mise à jour. demain je dois l'appeler pour la formation/ boite vocale,,,,telephone,FALSE
+100056,FAHS GAZ,0661-396877,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100131,FLAMME DISTRIBUTION,0661-604742,0657-932605,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100407,FORT GAZ,0653-913207,,,arabe,actif,TRUE,2025-04-21,FALSE,,TRUE,1.3.2+34,OK,,,,telephone,FALSE
+100386,FRIDIGAZ,0600-027632,,,arabe,inactif,FALSE,,FALSE,,TRUE,1.3.0+31,,,,,telephone,FALSE
+100122,GAZADOM,0635-045374,,,arabe,inactif,FALSE,,FALSE,,TRUE,1.3.0+31,,,,,telephone,FALSE
+100446,GAZ ALKOZINA,0661-461304,0662-124469,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100132,GAZ AL MADINA,0661-736460,,,arabe,inactif,FALSE,2025-04-22,FALSE,,FALSE,,boite vocale,,,,telephone,FALSE
+100112,GAZ DE RICH,0661-770685,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100124,GAZ DU NORD,0662-844137,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100064,GAZ WALID,0661-406406,,,arabe,inactif,FALSE,2025-04-22,FALSE,,TRUE,,Aucune réponse,,,,telephone,FALSE
+100066,HAMZA GAZ,0661-994350,,,arabe,inactif,FALSE,,FALSE,,TRUE,1.3.0+31,,,,,telephone,FALSE
+100400,HANI GAZ,0643-715826,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100402,IFRIDISTRIBUTION,0668-368838,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100071,KHADDAM ALLAH,0661-497548,,,arabe,inactif,TRUE,2025-04-21,FALSE,,TRUE,1.3.2+34,Il vient de faire la mise à jour,,,,telephone,FALSE
+100250,LAGOUASSEM POUR LE SERVICE ET TRANS,0661-332835,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100034,LAHCEN MOUSSAOUI,0668-544059,0666-344249,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100191,LARA GAZ,0661-394381,,,arabe,actif,TRUE,2025-04-21,FALSE,,TRUE,1.3.2+34,Elle reçoit le bc le jour de la livraison,,,,telephone,FALSE
+100230,MEDA GAZ,0661-307744,,,arabe,inactif,FALSE,,FALSE,,TRUE,1.3.0+31,,,,,telephone,FALSE
+100076,MILGO GAZ,0668-117123,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100079,MOULGAZ,0628-787563,0671-631532,,arabe,inactif,FALSE,,FALSE,,TRUE,1.3.0+31,,,,,telephone,FALSE
+100005,NASR GAZ,0675-980156,,,arabe,inactif,TRUE,2025-04-21,FALSE,,TRUE,1.3.2+34,Probléme au niveau de l'application,,,,telephone,FALSE
+100007,NASSIRI BRAHIM,0661-157432,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100410,NOUHAILA GAZ,0661-629068,,,arabe,inactif,FALSE,,FALSE,,TRUE,1.3.0+31,,,,,telephone,FALSE
+100456,OHNANIYGAZ,0612-345749,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100305,OUAZRHARI MOHAMMED,0616-875012,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100018,OULBORJ MOHAMED,0661-057440,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100436,SALAMA ENERGIE,0031611-331873,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100451,SALAMAT SERVICES,0661-879296,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100125,SALMANI ABDELAZIZ,0661-394381,,,arabe,inactif,TRUE,2025-04-21,FALSE,,FALSE,,LARA = SALMANI,,,,telephone,FALSE
+100231,SIGMA GAZ,0661-458688,,,arabe,inactif,TRUE,2025-04-22,FALSE,,FALSE,,Formation le soir,,,,telephone,FALSE
+100130,SIMADER,061-2345761,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100256,SMIR GAZ,0667-099946,,,arabe,actif,TRUE,2025-04-21,FALSE,,TRUE,1.3.2+34,OK,,,,telephone,FALSE
+100380,SOFIA GAZ,0662-105158,0661-088337 ,0661-782387,arabe,inactif,TRUE,2025-04-23,FALSE,,FALSE,,Lien envoyé pour le telechargement de l'app/ boite vocale,,,,telephone,FALSE
+100235,SOTRADING,0661-661789,0626-912560 ,0661-466608,arabe,inactif,TRUE,2025-04-23,TRUE,il a demandé de faire la formation,FALSE,,Il va m'appeler d'ici 1h (10h13),,,,telephone,FALSE
+100390,TAMDA GAZ,0671-202326,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100138,TAYEB GAZ,0661-322857,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100042,TIMOUYAS MOHAMMED,0661-371075,,,arabe,inactif,TRUE,2025-04-23,TRUE,,FALSE,,elle a appelé pour faire la formation,,,,telephone,FALSE
+100275,TOUFAOUT DISTRIBUTION,0657-932605,0667-656795,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100325,TROIS GAZ,0661-736460,0671-481893,,arabe,inactif,TRUE,2025-04-22,FALSE,,FALSE,,Il ne veux pas utiliser l'app,,,,telephone,FALSE
+100270,WASSIM GAZ,0698-132627,,,arabe,actif,TRUE,2025-04-21,FALSE,,TRUE,1.3.2+34,OK,,,,telephone,FALSE
+100045,WAZAHIM MBAREK,0761-643334,0663-443363,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100314,WIAM DISTRIBUTION,0661-258139,,,arabe,inactif,FALSE,,FALSE,,FALSE,,,,,,telephone,FALSE
+100408,Y.B ENERGIE,0689-841175,0662-746261,,arabe,inactif,TRUE,2025-04-22,FALSE,,TRUE,,Il va faire la mise à jour. demain je dois l'appeler pour la formation/  aucune réponse,,,,telephone,FALSE

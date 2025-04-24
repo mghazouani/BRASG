@@ -16,6 +16,7 @@ import RadioGroup from "@mui/material/RadioGroup";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormLabel from "@mui/material/FormLabel";
 import Autocomplete from "@mui/material/Autocomplete";
+import Snackbar from "@mui/material/Snackbar";
 import { api } from "@/utils/api";
 
 // Type pour les villes
@@ -60,11 +61,15 @@ export interface ClientEditFormProps {
     a_demande_aide: { value: boolean; label: string }[];
     app_installee: { value: boolean; label: string }[];
   };
+  onToast?: (message: string, severity: "success" | "error") => void;
 }
 
-export default function ClientEditForm({ open, client, onClose, onSave, loading, error, settings }: ClientEditFormProps) {
+export default function ClientEditForm({ open, client, onClose, onSave, loading, error, settings, onToast }: ClientEditFormProps) {
   const [form, setForm] = useState<Client>(client);
   const [villes, setVilles] = useState<VilleType[]>([]);
+  const [toast, setToast] = useState<{ open: boolean; message: string; severity: "error" }>({ open: false, message: "", severity: "error" });
+  const [saving, setSaving] = useState(false);
+  const [missingFields, setMissingFields] = useState<{ [key: string]: boolean }>({});
 
   React.useEffect(() => {
     setForm(client);
@@ -81,36 +86,35 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
   // Ordre des champs pour la modale d'édition
   const fieldsOrder: { key: keyof Client; label: string; type?: string; options?: any[] }[] = [
     { key: 'nom_client', label: 'Nom' },
+    { key: 'sap_id', label: 'SAP ID' },
     { key: 'telephone', label: 'Téléphone' },
     { key: 'telephone2', label: 'Téléphone 2' },
     { key: 'telephone3', label: 'Téléphone 3' },
-    { key: 'langue', label: 'Langue', type: 'select', options: settings.langue },
     { key: 'statut_general', label: 'Statut', type: 'select', options: settings.statut_general },
-    { key: 'canal_contact', label: 'Canal contact', type: 'select', options: settings.canal_contact },
-    { key: 'notification_client', label: 'Notification client', type: 'radio', options: settings.notification_client },
-    { key: 'date_notification', label: 'Date notification', type: 'date' },
-    { key: 'app_installee', label: 'App installée', type: 'radio', options: settings.app_installee },
-    { key: 'maj_app', label: 'MàJ App' },
-    { key: 'a_demande_aide', label: 'Aide demandée', type: 'radio', options: settings.a_demande_aide },
-    { key: 'nature_aide', label: 'Nature aide' },
-    { key: 'commentaire_agent', label: 'Commentaire agent' },
+    { key: 'langue', label: 'Langue', type: 'select', options: settings.langue },   
+    { key: 'canal_contact', label: 'Canal de contact', type: 'select', options: settings.canal_contact },
+    { key: 'notification_client', label: 'Notification Client', type: 'select', options: settings.notification_client },
+    { key: 'date_notification', label: 'Dernière notification', type: 'text' },
+    { key: 'a_demande_aide', label: 'A demandé de l’aide', type: 'select', options: settings.a_demande_aide },
+    { key: 'nature_aide', label: 'Nature de l’aide', type: 'text' },
+    { key: 'app_installee', label: 'App installée', type: 'select', options: settings.app_installee },
+    { key: 'maj_app', label: 'Version app', type: 'text' },
+    { key: 'commentaire_agent', label: 'Commentaire agent', type: 'text' },
+    { key: 'segment_client', label: 'CMD/Jour', type: 'text' },
+    { key: 'region', label: 'Région', type: 'text' },
     { key: 'ville', label: 'Ville', type: 'autocomplete' },
-    { key: 'region', label: 'Région' },
-    { key: 'segment_client', label: 'CMD/Jour' },
-    { key: 'relance_planifiee', label: 'Relance planifiée', type: 'radio', options: [
-      { value: true, label: 'Oui' },
-      { value: false, label: 'Non' }
-    ] },
+    
   ];
 
-  // Rendu dynamique d'un champ
+  // Rendu dynamique d'un champs
   const renderField = (fc: typeof fieldsOrder[0]) => {
     const { key, label, type, options } = fc;
     const value = form[key] ?? '';
+    const isError = !!missingFields[key];
     switch (type) {
       case 'select':
         return (
-          <TextField key={key} label={label} name={key} select value={value} onChange={handleChange} fullWidth>
+          <TextField key={key} label={label} name={key} select value={value} onChange={handleChange} fullWidth error={isError} helperText={isError ? 'Champs obligatoire' : undefined}>
             {options!.map(opt => (
               <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
             ))}
@@ -118,36 +122,33 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
         );
       case 'radio':
         return (
-          <FormControl key={key} component="fieldset">
+          <FormControl key={key} component="fieldset" error={isError}>
             <FormLabel component="legend">{label}</FormLabel>
-            <RadioGroup row name={key} value={`${value}`} onChange={handleChange}>
+            <RadioGroup row name={key} value={value} onChange={handleChange}>
               {options!.map(opt => (
-                <FormControlLabel key={opt.value.toString()} value={`${opt.value}`} control={<Radio />} label={opt.label} />
+                <FormControlLabel key={opt.value} value={opt.value} control={<Radio />} label={opt.label} />
               ))}
             </RadioGroup>
+            {isError && <span style={{ color: '#d32f2f', fontSize: 12 }}>Champs obligatoire</span>}
           </FormControl>
         );
-      case 'date':
-        return <TextField key={key} label={label} name={key} type="date" value={value as string} onChange={handleChange} fullWidth />;
       case 'autocomplete':
         return (
           <Autocomplete
             key={key}
-            freeSolo
-            openOnFocus
-            options={villes.map(v => v.nom)}
-            value={form.ville || ''}
-            onChange={(_, val) => {
-              const sel = villes.find(v => v.nom === val);
-              setForm(prev => ({ ...prev, ville: val || '', region: sel?.region || '' }));
+            options={villes}
+            getOptionLabel={option => option.nom}
+            value={villes.find(v => v.id === form.ville) || null}
+            onChange={(_, newVille) => {
+              setForm(prev => ({
+                ...prev,
+                ville: newVille ? newVille.id : '',
+                region: newVille ? newVille.region : ''
+              }));
             }}
-            onInputChange={(_, val) => setForm(prev => ({ ...prev, ville: val }))}
-            onBlur={() => {
-              const sel = villes.find(v => v.nom === form.ville);
-              setForm(prev => ({ ...prev, region: sel?.region || '' }));
-            }}
-            renderInput={params => <TextField {...params} label="Ville" fullWidth />}>
-          </Autocomplete>
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            renderInput={params => <TextField {...params} label="Ville" fullWidth error={isError} helperText={isError ? 'Champs obligatoire' : undefined} />}
+          />
         );
       default:
         return (
@@ -155,9 +156,11 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
             key={key}
             label={label}
             name={key}
-            value={value as string}
+            value={typeof value === 'string' ? value : ''}
             onChange={handleChange}
             fullWidth
+            error={isError}
+            helperText={isError ? 'Champs obligatoire' : undefined}
             multiline={key === 'commentaire_agent'}
             minRows={key === 'commentaire_agent' ? 2 : undefined}
           />
@@ -171,26 +174,87 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
     setForm(prev => ({ ...prev, [name as keyof Client]: val as Client[keyof Client] }));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(form);
-  }
+    console.log("handleSubmit appelé");
+    // Vérification des champs obligatoires (sap_id, nom_client, telephone)
+    const missing: { [key: string]: boolean } = {};
+    if (!form.sap_id) missing['sap_id'] = true;
+    if (!form.nom_client) missing['nom_client'] = true;
+    if (!form.telephone) missing['telephone'] = true;
+    setMissingFields(missing);
+    if (Object.keys(missing).length > 0) {
+      setToast({ open: true, message: "Veuillez remplir tous les champs obligatoires.", severity: "error" });
+      return;
+    }
+    setSaving(true);
+    try {
+      // Filtrer les champs à envoyer (évite d'envoyer les champs système/back)
+      const fieldsToSend = [
+        'id', // <-- Correction : on ajoute l'id pour que le backend reçoive bien l'identifiant du client
+        'sap_id','nom_client','telephone','telephone2','telephone3','langue','statut_general',
+        'notification_client','date_notification','a_demande_aide','nature_aide','app_installee',
+        'maj_app','commentaire_agent','segment_client','canal_contact','ville','region'
+      ];
+      const safeForm: any = Object.fromEntries(
+        Object.entries(form).filter(([key]) => fieldsToSend.includes(key))
+      );
+      // Ne pas envoyer les champs à null (ex: action, date_notification)
+      Object.keys(safeForm).forEach(k => {
+        if (safeForm[k] === null) delete safeForm[k];
+      });
+      // Correction : ville doit être l'UUID (ou null)
+      if (safeForm.ville === '') safeForm.ville = null;
+      console.log("Payload filtré:", safeForm);
+      await onSave(safeForm);
+      console.log("onSave appelé !");
+      if (onToast) onToast("Client modifié avec succès", "success");
+      onClose();
+    } catch (err: any) {
+      console.error("Erreur lors de l'enregistrement:", err);
+      let msg = "Erreur lors de l'enregistrement";
+      if (err?.response?.data && Object.keys(err.response.data).length > 0) {
+        msg = typeof err.response.data === "string"
+          ? err.response.data
+          : JSON.stringify(err.response.data);
+      } else if (err?.message) {
+        msg = err.message;
+      } else if (err?.toString) {
+        msg = err.toString();
+      }
+      setToast({ open: true, message: msg, severity: "error" });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Modifier le client</DialogTitle>
-      <form onSubmit={handleSubmit}>
+    <React.Fragment>
+      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+        <DialogTitle>Modifier le client</DialogTitle>
         <DialogContent className="flex flex-col gap-6 max-h-[60vh] overflow-y-auto">
           {error && <Alert severity="error">{error}</Alert>}
-          {fieldsOrder.map(fc => renderField(fc))}
+          <form onSubmit={handleSubmit} autoComplete="off" id="client-edit-form">
+            {fieldsOrder.map(fc => renderField(fc))}
+          </form>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose} disabled={loading}>Annuler</Button>
-          <Button type="submit" variant="contained" color="primary" disabled={loading}>
+          <Button onClick={onClose} disabled={saving}>Annuler</Button>
+          <Button type="submit" form="client-edit-form" variant="contained" color="primary" disabled={saving}>
             Enregistrer
           </Button>
         </DialogActions>
-      </form>
-    </Dialog>
+      </Dialog>
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={2500}
+        onClose={() => setToast({ ...toast, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert severity={toast.severity} variant="filled" sx={{ width: "100%" }}>
+          {toast.message}
+        </Alert>
+      </Snackbar>
+    </React.Fragment>
   );
 }

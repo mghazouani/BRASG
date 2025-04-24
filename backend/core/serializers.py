@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Client, AuditLog, DashboardConfig, Ville
+from .models import User, Client, AuditLog, DashboardConfig, Ville, NotificationClient
 from django.core.exceptions import ValidationError
 from django.conf import settings
 from PIL import Image
@@ -111,18 +111,22 @@ class VilleSerializer(serializers.ModelSerializer):
         fields = ['id', 'nom', 'region']
 
 class ClientSerializer(serializers.ModelSerializer):
-    # Ville référencée, affichée par son nom au lieu de son ID
-    ville = serializers.SlugRelatedField(slug_field='nom', queryset=Ville.objects.all())
+    ville = serializers.PrimaryKeyRelatedField(queryset=Ville.objects.all(), allow_null=True, required=False)
     region = serializers.CharField(read_only=True)
-    # Serialiser les UUIDs des users en tant que chaînes
     cree_par_user = serializers.UUIDField(source='cree_par_user_id', read_only=True)
     modifie_par_user = serializers.UUIDField(source='modifie_par_user_id', read_only=True)
 
     def update(self, instance, validated_data):
-        request = self.context.get('request')
-        if request and hasattr(request, 'user'):
-            instance._current_user = request.user
-        return super().update(instance, validated_data)
+        import logging
+        logger = logging.getLogger("core.serializers")
+        try:
+            request = self.context.get('request')
+            if request and hasattr(request, 'user'):
+                instance._current_user = request.user
+            return super().update(instance, validated_data)
+        except Exception as e:
+            logger.error(f"[DEBUG] Erreur update ClientSerializer: {e}", exc_info=True)
+            raise
 
     def create(self, validated_data):
         instance = super().create(validated_data)
@@ -146,3 +150,11 @@ class DashboardConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = DashboardConfig
         fields = '__all__'
+
+class NotificationClientSerializer(serializers.ModelSerializer):
+    client = serializers.PrimaryKeyRelatedField(queryset=Client.objects.all())
+    utilisateur = serializers.SlugRelatedField(slug_field='username', read_only=True)
+
+    class Meta:
+        model = NotificationClient
+        fields = ['id', 'client', 'utilisateur', 'date_notification', 'statut', 'canal']

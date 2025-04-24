@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Client, AuditLog, ImportFichier, DashboardConfig, Ville
+from .models import User, Client, AuditLog, ImportFichier, DashboardConfig, Ville, NotificationClient
 from django import forms
 from django.urls import path
 from django.shortcuts import redirect
@@ -208,3 +208,10 @@ class DashboardConfigAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {'fields': ('settings',)}),
     )
+
+@admin.register(NotificationClient)
+class NotificationClientAdmin(admin.ModelAdmin):
+    list_display = ('client', 'utilisateur', 'date_notification', 'statut', 'canal')
+    list_filter = ('statut', 'canal', 'date_notification')
+    search_fields = ('client__nom_client', 'client__sap_id', 'utilisateur__username')
+    readonly_fields = ('client', 'utilisateur', 'date_notification', 'statut', 'canal')

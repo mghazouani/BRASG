@@ -28,3 +28,19 @@ Ne propose que des actions métier pertinentes, en accord avec les règles, sans
 le fichier F:\WindSurfDevs\stack.md est ta roadmap technique
 
 le model django à suivre est le fichier F:\WindSurfDevs\modelDJANGO.md
+
+
+Pour le commit et push vers github utise la commande suivante en changeant "message" par les dernieres modifications:
+
+```bash
+git add .; git commit -m "message"; git push
+
+```
+
+
+Le backend doit :
+Laisser DRF gérer la modification de la ForeignKey ville.
+La région soit toujours synchronisée à partir de la ville, il ne faut pas permettre la modification manuelle de region via le serializer.
+
+
+Le champ ville dans le modèle Client est une clé étrangère (ForeignKey) vers la table Ville, donc il attend un UUID (ou l’id de la ville), pas son nom.

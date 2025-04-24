@@ -2,8 +2,8 @@ from rest_framework import viewsets, permissions, status, pagination
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Client, AuditLog, Ville
-from .serializers import ClientSerializer, AuditLogSerializer, UserSerializer, VilleSerializer
+from .models import Client, AuditLog, Ville, NotificationClient
+from .serializers import ClientSerializer, AuditLogSerializer, UserSerializer, VilleSerializer, NotificationClientSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.password_validation import validate_password
@@ -50,6 +50,14 @@ class ClientViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(ville__iexact=ville)
         return queryset
 
+    def update(self, request, *args, **kwargs):
+        import logging
+        logger = logging.getLogger("core.views_api")
+        logger.warning(f"[DEBUG] Payload reçu pour update: {request.data}")
+        response = super().update(request, *args, **kwargs)
+        logger.warning(f"[DEBUG] Réponse du serializer: {response.data}")
+        return response
+
     def perform_update(self, serializer):
         instance = serializer.instance
         instance._current_user = self.request.user  # Toujours positionner avant le save
@@ -87,6 +95,18 @@ class VilleViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = VilleSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = None  # désactive la pagination pour renvoyer toutes les villes
+
+class NotificationClientViewSet(viewsets.ModelViewSet):
+    queryset = NotificationClient.objects.all().order_by('-date_notification')
+    serializer_class = NotificationClientSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['client', 'statut', 'canal']
+    search_fields = ['client__nom_client', 'client__sap_id', 'utilisateur__username']
+    ordering_fields = ['date_notification']
+
+    def perform_create(self, serializer):
+        serializer.save(utilisateur=self.request.user)
 
 class MeView(APIView):
     permission_classes = [IsAuthenticated]

@@ -44,7 +44,7 @@ class Client(models.Model):
     commentaire_agent = models.TextField(null=True, blank=True)
     segment_client = models.CharField('CMD/Jour', max_length=100, null=True, blank=True)
     ville = models.ForeignKey('core.Ville', on_delete=models.SET_NULL, null=True, blank=True, related_name='clients')
-    region = models.CharField(max_length=100, null=True, blank=True)
+    region = models.CharField(max_length=100, null=True, blank=True, default="")
     canal_contact = models.CharField(max_length=100, null=True, blank=True)
     date_creation = models.DateTimeField(auto_now_add=True)
     date_derniere_maj = models.DateTimeField(auto_now=True)
@@ -60,7 +60,7 @@ class Client(models.Model):
         if self.ville:
             self.region = self.ville.region
         else:
-            self.region = None
+            self.region = ""
         # --- RÈGLES MÉTIER AUTOMATIQUES ---
         actions = []
         # 1. Statut actif
@@ -320,6 +320,20 @@ class ImportFichier(models.Model):
 
     def __str__(self):
         return f"Import du {self.date_import} par {self.utilisateur}"
+
+class NotificationClient(models.Model):
+    STATUT_CHOICES = [
+        ('succes', 'Succès'),
+        ('echec', 'Échec (injoignable)'),
+    ]
+    client = models.ForeignKey('Client', on_delete=models.CASCADE, related_name='notifications')
+    utilisateur = models.ForeignKey('User', on_delete=models.SET_NULL, null=True)
+    date_notification = models.DateTimeField(auto_now_add=True)
+    statut = models.CharField(max_length=10, choices=STATUT_CHOICES)
+    canal = models.CharField(max_length=50, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.client} - {self.get_statut_display()} le {self.date_notification:%Y-%m-%d %H:%M}"
 
 class AuditLog(models.Model):
     ACTION_CHOICES = [

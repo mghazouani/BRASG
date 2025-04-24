@@ -1,11 +1,12 @@
 from django.urls import path, include
 from rest_framework import routers
-from .views_api import ClientViewSet, AuditLogViewSet, MeView, MeUpdateView, ChangePasswordView, CustomTokenObtainPairView, DeleteAvatarView, VilleViewSet, adoption_kpis, engagement_kpis, clients_kpis
+from .views_api import ClientViewSet, AuditLogViewSet, MeView, MeUpdateView, ChangePasswordView, CustomTokenObtainPairView, DeleteAvatarView, VilleViewSet, adoption_kpis, engagement_kpis, clients_kpis, NotificationClientViewSet
 
 router = routers.DefaultRouter()
 router.register(r'clients', ClientViewSet)
 router.register(r'villes', VilleViewSet)
 router.register(r'auditlogs', AuditLogViewSet)
+router.register(r'notifications', NotificationClientViewSet)
 
 urlpatterns = [
     path('api/', include(router.urls)),

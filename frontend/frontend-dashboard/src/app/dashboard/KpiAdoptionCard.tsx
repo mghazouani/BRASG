@@ -37,7 +37,7 @@ export default function KpiAdoptionCard() {
         <Box display="flex" flexDirection="column" alignItems="left" gap={0.5} mt={2}>
           <Typography variant="body1" sx={{ fontWeight: 500 }}>Clients avec app installée : <b style={{ color: '#1976d2' }}>{kpi.pct_installed}%</b></Typography>
           <Typography variant="body1" sx={{ fontWeight: 500 }}>Clients à jour : <b style={{ color: '#43a047' }}>{kpi.pct_up_to_date}%</b></Typography>
-          <Typography variant="body1" sx={{ fontWeight: 500 }}>Délai moyen d’installation : <b>{kpi.avg_days_to_install !== null ? `${kpi.avg_days_to_install} jours` : "—"}</b></Typography>
+          {/* <Typography variant="body1" sx={{ fontWeight: 500 }}>Délai moyen d’installation : <b>{kpi.avg_days_to_install !== null ? `${kpi.avg_days_to_install} jours` : "—"}</b></Typography> */}
         </Box>
       </CardContent>
     </Card>
