@@ -31,7 +31,7 @@ export default function ClientNotificationHistory({ clientId, onNotify }: { clie
     api.get(`/notifications/?client=${clientId}`)
       .then(res => {
         // Correction : s'assurer que res.data est bien un tableau
-        setHistory(Array.isArray(res.data) ? res.data : []);
+        setHistory(Array.isArray(res.data) ? res.data : (res.data.results || []));
       })
       .catch(() => setError("Erreur chargement historique des notifications."))
       .finally(() => setLoading(false));
