@@ -282,7 +282,7 @@ export default function DashboardPage() {
     { key: 'statut_general', label: 'Statut' },
     { key: 'canal_contact', label: 'Canal' },
     { key: 'notification_client', label: 'Notifié' },
-    { key: 'date_notification', label: 'Date notification' },
+    { key: 'date_notification', label: 'Dernière notification' },
     { key: 'app_installee', label: 'App' },
     { key: 'maj_app', label: 'MàJ App' },
     { key: 'a_demande_aide', label: 'Aide' },
@@ -317,23 +317,8 @@ export default function DashboardPage() {
       case 'nom_client': return client.nom_client;
       case 'sap_id': return client.sap_id;
       case 'telephone':
-        if (isEditing) {
-          return <TextField size="small" value={inlineEditData.telephone || ''} onChange={e => setInlineEditData(d => ({ ...d, telephone: e.target.value }))} />;
-        }
-        // Affichage du numéro principal + icône si d'autres numéros
-        const hasSecond = !!client.telephone2;
-        const hasThird = !!client.telephone3;
-        const tooltip = [client.telephone2, client.telephone3].filter(Boolean).join(' / ');
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: hasSecond || hasThird ? 'space-between' : 'flex-start' }}>
-            <span>{client.telephone}</span>
-            {(hasSecond || hasThird) && (
-              <Tooltip {...largeTooltipProps} title={tooltip} placement="top">
-                <AddCircleOutlineIcon fontSize="small" sx={{ color: '#1976d2', ml: 0.5, verticalAlign: 'middle', cursor: 'pointer' }} />
-              </Tooltip>
-            )}
-          </div>
-        );
+        // Non éditable en inline
+        return client.telephone;
       case 'langue':
         return isEditing
           ? <TextField size="small" value={inlineEditData.langue || ''} onChange={e => setInlineEditData(d => ({ ...d, langue: e.target.value }))} />
@@ -374,8 +359,8 @@ export default function DashboardPage() {
         );
       case 'date_notification':
         return isEditing
-          ? <TextField size="small" type="date" value={inlineEditData.date_notification || ''} onChange={e => setInlineEditData(d => ({ ...d, date_notification: e.target.value }))} />
-          : client.date_notification || <span className="text-gray-400">—</span>;
+          ? <TextField size="small" value={client.date_notification ? new Date(client.date_notification).toLocaleDateString() : ''} disabled InputProps={{ readOnly: true }} />
+          : client.date_notification ? new Date(client.date_notification).toLocaleDateString() : <span className="text-gray-400">—</span>;
       case 'app_installee':
         return isEditing
           ? <TextField size="small" select value={`${inlineEditData.app_installee}`} onChange={e => setInlineEditData(d => ({ ...d, app_installee: e.target.value === 'true' }))}>
@@ -432,14 +417,17 @@ export default function DashboardPage() {
               : <span className="text-gray-400">—</span>
             );
       case 'segment_client':
-        return isEditing
-          ? <TextField size="small" value={inlineEditData.segment_client||''} onChange={e=>setInlineEditData(d=>({...d,segment_client:e.target.value}))} />
-          : client.segment_client || <span className="text-gray-400">—</span>;
+        // Non éditable en inline
+        return client.segment_client || <span className="text-gray-400">—</span>;
       case 'relance_planifiee':
         // Icône relance : timer orange si planifiée, gris sinon
         return (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <IconButton onClick={() => handleOpenNotifModal(client)} color="primary">
+            <IconButton 
+              onClick={() => !isEditing && handleOpenNotifModal(client)}
+              color="primary"
+              disabled={isEditing}
+            >
               <TimerIcon sx={{ color: client.relance_planifiee ? '#fb8c00' : '#bdbdbd', fontSize: 22 }} />
             </IconButton>
           </div>
@@ -509,51 +497,38 @@ export default function DashboardPage() {
     setInlineEditData({});
     setInlineEditError(null);
   }
-  async function saveInlineEdit() {
+  const saveInlineEdit = async () => {
     if (!inlineEditId) return;
     setInlineEditLoading(true);
     setInlineEditError(null);
     try {
-      // Générer un payload avec le champ inline modifié
-      const originalInline = clients.find(c => c.id === inlineEditId);
-      const payloadInline: Partial<Client> = {};
-      if (originalInline) {
-        for (const key in inlineEditData as any) {
-          if (key === 'id' || key === 'region') continue;
-          // @ts-ignore
-          if ((inlineEditData as any)[key] !== (originalInline as any)[key]) {
-            // @ts-ignore
-            payloadInline[key] = (inlineEditData as any)[key];
-          }
-        }
-      }
-      // Si seulement la région/id changés ou aucun changement, on skip
-      if (Object.keys(payloadInline).length === 0) {
-        setInlineEditLoading(false);
-        setInlineEditId(null);
-        return;
-      }
-      const res = await api.patch(`clients/${inlineEditId}/`, payloadInline);
-      setClients(clients => clients.map(c => c.id === inlineEditId ? res.data : c));
+      const fieldsToSend = [
+        'id','sap_id','nom_client','telephone','telephone2','telephone3','langue','statut_general',
+        'notification_client','a_demande_aide','nature_aide','app_installee','maj_app','commentaire_agent','segment_client','canal_contact','ville','region'
+      ];
+      const safeForm: any = Object.fromEntries(
+        Object.entries(inlineEditData).filter(([key]) => fieldsToSend.includes(key))
+      );
+      safeForm.id = inlineEditId;
+      await api.patch(`/clients/${inlineEditId}/`, safeForm);
+      setClients(clients => clients.map(c => c.id === inlineEditId ? { ...c, ...safeForm } : c));
       setInlineEditId(null);
       setInlineEditData({});
-      // Vérifier relance après modification inline
-      {
-        const updated = res.data;
-        const newRel = shouldRelance(updated);
-        if (newRel !== updated.relance_planifiee) {
-          api.patch(`clients/${updated.id}/`, { relance_planifiee: newRel })
-            .then(resp => setClients(prev => prev.map(p => p.id === resp.data.id ? resp.data : p)))
-            .catch(err => console.error('Inline relance update error:', err));
-        }
-      }
     } catch (err: any) {
-      console.error("Inline edit error:", err.response?.data);
-      setInlineEditError(JSON.stringify(err.response?.data) || "Erreur lors de la modification");
-    } finally {
+      let msg = "Erreur lors de la sauvegarde";
+      if (err?.response?.data) {
+        msg = typeof err.response.data === "string"
+          ? err.response.data
+          : JSON.stringify(err.response.data);
+      } else if (err?.message) {
+        msg = err.message;
+      }
+      setInlineEditError(msg);
+      console.error("Erreur PATCH inline:", err, safeForm);
+    }finally {
       setInlineEditLoading(false);
     }
-  }
+  };
 
   // Fonction pour ouvrir la modale de notification depuis l'icône relance
   const handleOpenNotifModal = (client: Client) => {
@@ -566,9 +541,21 @@ export default function DashboardPage() {
   };
 
   // Callback à passer à la modale pour affichage du toast après notification
-  const handleNotifSuccess = (message = "Notification enregistrée avec succès") => {
-    setNotifToast({ open: true, message, severity: message === "Erreur d'enregistrement" ? "error" : "success" });
-    handleCloseNotifModal();
+  const handleNotifSuccess = async (message = "Notification enregistrée avec succès") => {
+    setNotifToast({ open: true, message, severity: "success" });
+    if (notifModalClient) {
+      // Rafraîchir la date_notification ET notification_client du client concerné
+      try {
+        const res = await api.get(`/clients/${notifModalClient.id}/`);
+        setClients(clients => clients.map(c =>
+          c.id === notifModalClient.id
+            ? { ...c, date_notification: res.data.date_notification, notification_client: res.data.notification_client }
+            : c
+        ));
+      } catch (err) {
+        setNotifToast({ open: true, message: "Erreur lors de la mise à jour du client après notification", severity: "error" });
+      }
+    }
   };
 
   // Toast pour l'édition de client
@@ -731,7 +718,7 @@ export default function DashboardPage() {
               <div><b>Langue:</b> {selectedClient.langue}</div>
               <div><b>Statut:</b> <Chip label={selectedClient.statut_general} size="small" color={statutColor(selectedClient.statut_general)} /></div>
               <div><b>Notification client:</b> {selectedClient.notification_client ? "Oui" : "Non"}</div>
-              <div><b>Date notification:</b> {selectedClient.date_notification || <span className="text-gray-400">—</span>}</div>
+              <div><b>Dernière notification:</b> {selectedClient.date_notification || <span className="text-gray-400">—</span>}</div>
               <div><b>A demandé aide:</b> {selectedClient.a_demande_aide ? `Oui (${selectedClient.nature_aide || ''})` : "Non"}</div>
               <div><b>App installée:</b> {selectedClient.app_installee === false ? "Non" : selectedClient.app_installee === true ? "Oui" : <span className="text-gray-400">—</span>}</div>
               <div><b>MàJ app:</b> {selectedClient.maj_app || <span className="text-gray-400">—</span>}</div>

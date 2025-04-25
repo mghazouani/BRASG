@@ -1,6 +1,8 @@
 from django.db import models
 import uuid
 from django.contrib.auth.models import AbstractUser
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 
 # Create your models here.
 
@@ -334,6 +336,28 @@ class NotificationClient(models.Model):
 
     def __str__(self):
         return f"{self.client} - {self.get_statut_display()} le {self.date_notification:%Y-%m-%d %H:%M}"
+
+# Signal : mise à jour automatique du champ date_notification ET notification_client du Client après chaque notification
+@receiver(post_save, sender=NotificationClient)
+def update_client_notification_fields(sender, instance, created, **kwargs):
+    if instance.client:
+        # 1. Mettre à jour la date de notification si création
+        if created:
+            instance.client.date_notification = instance.date_notification.date()
+        # 2. Mettre à jour notification_client selon la logique métier
+        # Si au moins une notification "succes" existe, on met à True
+        # Sinon, si aucune ou seulement des "echec", on met à False
+        has_success = instance.client.notifications.filter(statut='succes').exists()
+        instance.client.notification_client = has_success
+        instance.client.save(update_fields=["date_notification", "notification_client"])
+
+# BONUS : si une notification est supprimée, on vérifie si notification_client doit être mis à jour
+@receiver(post_delete, sender=NotificationClient)
+def update_client_notification_fields_on_delete(sender, instance, **kwargs):
+    if instance.client:
+        has_success = instance.client.notifications.filter(statut='succes').exists()
+        instance.client.notification_client = has_success
+        instance.client.save(update_fields=["notification_client"])
 
 class AuditLog(models.Model):
     ACTION_CHOICES = [

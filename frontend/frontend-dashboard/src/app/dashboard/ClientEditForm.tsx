@@ -94,23 +94,35 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
     { key: 'langue', label: 'Langue', type: 'select', options: settings.langue },   
     { key: 'canal_contact', label: 'Canal de contact', type: 'select', options: settings.canal_contact },
     { key: 'notification_client', label: 'Notification Client', type: 'select', options: settings.notification_client },
-    { key: 'date_notification', label: 'Dernière notification', type: 'text' },
+    { key: 'date_notification', label: 'Dernière notification' },
     { key: 'a_demande_aide', label: 'A demandé de l’aide', type: 'select', options: settings.a_demande_aide },
     { key: 'nature_aide', label: 'Nature de l’aide', type: 'text' },
     { key: 'app_installee', label: 'App installée', type: 'select', options: settings.app_installee },
     { key: 'maj_app', label: 'Version app', type: 'text' },
     { key: 'commentaire_agent', label: 'Commentaire agent', type: 'text' },
-    { key: 'segment_client', label: 'CMD/Jour', type: 'text' },
+    { key: 'segment_client', label: 'Segment', type: 'text' },
+    { key: 'ville', label: 'Ville', type: 'autocomplete', options: villes },
     { key: 'region', label: 'Région', type: 'text' },
-    { key: 'ville', label: 'Ville', type: 'autocomplete' },
-    
   ];
 
   // Rendu dynamique d'un champs
-  const renderField = (fc: typeof fieldsOrder[0]) => {
+  function renderField(fc: typeof fieldsOrder[0]) {
     const { key, label, type, options } = fc;
     const value = form[key] ?? '';
     const isError = !!missingFields[key];
+    if (key === 'date_notification') {
+      return (
+        <TextField
+          key={key}
+          label={label}
+          value={form[key] ? new Date(form[key] as string).toLocaleDateString() : ''}
+          fullWidth
+          InputProps={{ readOnly: true }}
+          disabled
+          margin="dense"
+        />
+      );
+    }
     switch (type) {
       case 'select':
         return (
@@ -191,9 +203,9 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
     try {
       // Filtrer les champs à envoyer (évite d'envoyer les champs système/back)
       const fieldsToSend = [
-        'id', // <-- Correction : on ajoute l'id pour que le backend reçoive bien l'identifiant du client
+        'id',
         'sap_id','nom_client','telephone','telephone2','telephone3','langue','statut_general',
-        'notification_client','date_notification','a_demande_aide','nature_aide','app_installee',
+        'notification_client','a_demande_aide','nature_aide','app_installee',
         'maj_app','commentaire_agent','segment_client','canal_contact','ville','region'
       ];
       const safeForm: any = Object.fromEntries(
