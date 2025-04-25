@@ -17,6 +17,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import FormLabel from "@mui/material/FormLabel";
 import Autocomplete from "@mui/material/Autocomplete";
 import Snackbar from "@mui/material/Snackbar";
+import Grid from "@mui/material/Grid"; // Vérifie que l'import de Grid provient bien de '@mui/material/Grid'
 import { api } from "@/utils/api";
 
 // Type pour les villes
@@ -93,7 +94,7 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
     { key: 'statut_general', label: 'Statut', type: 'select', options: settings.statut_general },
     { key: 'langue', label: 'Langue', type: 'select', options: settings.langue },   
     { key: 'canal_contact', label: 'Canal de contact', type: 'select', options: settings.canal_contact },
-    { key: 'notification_client', label: 'Notification Client', type: 'select', options: settings.notification_client },
+    { key: 'notification_client', label: 'Notification Client' },
     { key: 'date_notification', label: 'Dernière notification' },
     { key: 'a_demande_aide', label: 'A demandé de l’aide', type: 'select', options: settings.a_demande_aide },
     { key: 'nature_aide', label: 'Nature de l’aide', type: 'text' },
@@ -105,21 +106,98 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
     { key: 'region', label: 'Région', type: 'text' },
   ];
 
+  // Nouvelle structure de groupes pour le formulaire avec regroupements horizontaux
+  const groupedFields = [
+    {
+      groupLabel: "Infos Client",
+      fields: [
+        { key: 'nom_client', label: 'Nom' },
+        { key: 'sap_id', label: 'SAP ID' },
+      ],
+    },
+    {
+      groupLabel: "Coordonnées Client",
+      fields: [
+        // Regroupement horizontal ville + région
+        [
+          { key: 'ville', label: 'Ville' },
+          { key: 'region', label: 'Région' }
+        ],
+        // Regroupement horizontal téléphone
+        [
+          { key: 'telephone', label: 'Téléphone' },
+          { key: 'telephone2', label: 'Téléphone 2' },
+          { key: 'telephone3', label: 'Téléphone 3' }
+        ]
+      ],
+    },
+    {
+      groupLabel: "Préférences Communication",
+      fields: [
+        [
+          { key: 'canal_contact', label: 'Canal de contact' },
+          { key: 'langue', label: 'Langue' },
+        ]
+      ],
+    },
+    {
+      groupLabel: "Détails Suivi",
+      fields: [
+        // notification + date
+        [
+          { key: 'notification_client', label: 'Notification Client' },
+          { key: 'date_notification', label: 'Dernière notification' }
+        ],
+        // app + version
+        [
+          { key: 'app_installee', label: 'Application installée' },
+          { key: 'maj_app', label: 'Version app' }
+        ],
+        // aide + nature
+        [
+          { key: 'a_demande_aide', label: 'A demandé de l’aide' },
+          { key: 'nature_aide', label: 'Nature de l’aide' }
+        ]
+      ],
+    },
+    {
+      groupLabel: "Commentaires",
+      fields: [
+        { key: 'commentaire_agent', label: 'Commentaire agent' },
+      ],
+    },
+  ];
+
+  // mapping pour retrouver le field config d'origine (type, options, etc)
+  const fieldsConfig = Object.fromEntries(fieldsOrder.map(f => [f.key, f]));
+
   // Rendu dynamique d'un champs
   function renderField(fc: typeof fieldsOrder[0]) {
     const { key, label, type, options } = fc;
     const value = form[key] ?? '';
     const isError = !!missingFields[key];
+    // Notification client : affichage uniquement, non modifiable
+    if (key === 'notification_client') {
+      return (
+        <TextField
+          key={key}
+          name={key}
+          label={label}
+          value={value ? 'Oui' : 'Non'}
+          disabled
+          fullWidth
+        />
+      );
+    }
     if (key === 'date_notification') {
       return (
         <TextField
           key={key}
+          name={key}
           label={label}
-          value={form[key] ? new Date(form[key] as string).toLocaleDateString() : ''}
-          fullWidth
-          InputProps={{ readOnly: true }}
+          value={typeof value === 'string' ? value : ''}
           disabled
-          margin="dense"
+          fullWidth
         />
       );
     }
@@ -242,12 +320,36 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
 
   return (
     <React.Fragment>
-      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-        <DialogTitle>Modifier le client</DialogTitle>
-        <DialogContent className="flex flex-col gap-6 max-h-[60vh] overflow-y-auto">
+      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+        <DialogTitle>Modifier le suivi du client</DialogTitle>
+        <DialogContent className="max-h-[70vh] overflow-y-auto" sx={{ minWidth: 600, maxWidth: 900 }}>
           {error && <Alert severity="error">{error}</Alert>}
           <form onSubmit={handleSubmit} autoComplete="off" id="client-edit-form">
-            {fieldsOrder.map(fc => renderField(fc))}
+            {groupedFields.map(group => (
+              <React.Fragment key={group.groupLabel}>
+                {group.groupLabel !== "Commentaires" && (
+                  <div style={{ fontWeight: 600, fontSize: '1rem', margin: '32px 0 12px 0' }}>{group.groupLabel}</div>
+                )}
+                {group.fields.map((fieldOrGroup, idx) =>
+                  Array.isArray(fieldOrGroup) ? (
+                    // Regroupement horizontal : xs pour chaque champ, wrap automatique
+                    <Grid container spacing={2} key={idx} sx={{ mb: 2 }}>
+                      {fieldOrGroup.map(f => (
+                        <Grid item xs={Math.floor(12/fieldOrGroup.length)} key={f.key} sx={{ minWidth: 0 }}>
+                          {renderField({ ...(fieldsConfig[f.key as keyof typeof fieldsConfig]), ...f } as any)}
+                        </Grid>
+                      ))}
+                    </Grid>
+                  ) : (
+                    <Grid container spacing={2} key={fieldOrGroup.key} sx={{ mb: 2 }}>
+                      <Grid item xs={12} sm={fieldOrGroup.key === "commentaire_agent" ? 12 : 6}>
+                        {renderField({ ...(fieldsConfig[fieldOrGroup.key as keyof typeof fieldsConfig]), ...fieldOrGroup } as any)}
+                      </Grid>
+                    </Grid>
+                  )
+                )}
+              </React.Fragment>
+            ))}
           </form>
         </DialogContent>
         <DialogActions>
