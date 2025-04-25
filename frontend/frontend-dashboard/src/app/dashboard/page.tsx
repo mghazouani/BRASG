@@ -501,6 +501,7 @@ export default function DashboardPage() {
     if (!inlineEditId) return;
     setInlineEditLoading(true);
     setInlineEditError(null);
+    let safeForm: any = {};
     try {
       const fieldsToSend = [
         'id','sap_id','nom_client','telephone','telephone2','telephone3','langue','statut_general',
