@@ -17,7 +17,8 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import FormLabel from "@mui/material/FormLabel";
 import Autocomplete from "@mui/material/Autocomplete";
 import Snackbar from "@mui/material/Snackbar";
-import Grid from "@mui/material/Grid"; // Vérifie que l'import de Grid provient bien de '@mui/material/Grid'
+import Box from "@mui/material/Box"; 
+
 import { api } from "@/utils/api";
 
 // Type pour les villes
@@ -332,20 +333,20 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
                 )}
                 {group.fields.map((fieldOrGroup, idx) =>
                   Array.isArray(fieldOrGroup) ? (
-                    // Regroupement horizontal : xs pour chaque champ, wrap automatique
-                    <Grid container spacing={2} key={idx} sx={{ mb: 2 }}>
+                    // Regroupement horizontal : Box pour chaque champ, wrap automatique
+                    <Box display="flex" gap={2} key={idx} mb={2}>
                       {fieldOrGroup.map(f => (
-                        <Grid item xs={Math.floor(12/fieldOrGroup.length)} key={f.key} sx={{ minWidth: 0 }}>
+                        <Box key={f.key} flex={1} minWidth={0}>
                           {renderField({ ...(fieldsConfig[f.key as keyof typeof fieldsConfig]), ...f } as any)}
-                        </Grid>
+                        </Box>
                       ))}
-                    </Grid>
+                    </Box>
                   ) : (
-                    <Grid container spacing={2} key={fieldOrGroup.key} sx={{ mb: 2 }}>
-                      <Grid item xs={12} sm={fieldOrGroup.key === "commentaire_agent" ? 12 : 6}>
+                    <Box display="flex" gap={2} key={fieldOrGroup.key} mb={2}>
+                      <Box flex={fieldOrGroup.key === "commentaire_agent" ? 1 : 0.5} minWidth={0}>
                         {renderField({ ...(fieldsConfig[fieldOrGroup.key as keyof typeof fieldsConfig]), ...fieldOrGroup } as any)}
-                      </Grid>
-                    </Grid>
+                      </Box>
+                    </Box>
                   )
                 )}
               </React.Fragment>
