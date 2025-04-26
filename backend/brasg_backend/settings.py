@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'core',
     'villes',
     'corsheaders',
+    'scrap_sga',
 ]
 
 MIDDLEWARE = [
