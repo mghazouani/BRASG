@@ -312,10 +312,24 @@ export default function DashboardPage() {
     },
   };
 
+  // --- MODIF centralisation colonnes dashboard ---
+  const centerColumns = [
+    'sap_id',
+    'statut_general',
+    'canal_contact',
+    'notification_client',
+    'date_notification',
+    'app_installee',
+    'maj_app',
+    'a_demande_aide',
+    'segment_client',
+    'relance_planifiee',
+  ];
+
   const renderCell = (client: Client, field: keyof Client): React.ReactNode => {
     const isEditing = inlineEditId === client.id;
     switch (field) {
-      case 'nom_client': return client.nom_client;
+      case 'nom_client': return <b>{client.nom_client}</b>;
       case 'sap_id': return client.sap_id;
       case 'telephone':
         // Non éditable en inline
@@ -631,13 +645,14 @@ export default function DashboardPage() {
             <div className="text-gray-500">Aucun client trouvé.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full w-full text-sm table-auto">
+              <table className="min-w-full w-full text-sm table-auto dashboard-table-rows">
                 <thead>
                   <tr className="bg-blue-50">
                     {fieldsOrder.map(col => (
                       <th
                         key={col.key}
-                        className="p-2 text-left cursor-pointer"
+                        className={`p-2 text-left cursor-pointer ${centerColumns.includes(col.key) ? 'text-center' : 'text-left'}`}
+                        style={centerColumns.includes(col.key) ? { textAlign: 'center' } : {}}
                         onClick={() => handleSort(col.key)}
                       >
                         {col.label}
@@ -658,7 +673,13 @@ export default function DashboardPage() {
                       onDoubleClick={() => setSelectedClient(client)}
                     >
                       {fieldsOrder.map(col => (
-                        <td key={col.key} className="p-2">{renderCell(client, col.key)}</td>
+                        <td
+                          key={col.key}
+                          className={`p-2 ${centerColumns.includes(col.key) ? 'text-center' : ''}`}
+                          style={centerColumns.includes(col.key) ? { textAlign: 'center', verticalAlign: 'middle' } : { verticalAlign: 'middle' }}
+                        >
+                          {renderCell(client, col.key)}
+                        </td>
                       ))}
                       <td className="p-2 flex gap-1">
                         {inlineEditId === client.id ? (
@@ -760,10 +781,15 @@ export default function DashboardPage() {
           {editToast.message}
         </Alert>
       </Snackbar>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
       <style>{`
         .dashboard-row-hover:hover {
           background: #FFFDE7 !important;
           transition: background 0.2s;
+        }
+        /* --- Police Inter pour les lignes du tableau dashboard --- */
+        .dashboard-table-rows td {
+          font-family: 'Inter', sans-serif !important;
         }
       `}</style>
     </main>

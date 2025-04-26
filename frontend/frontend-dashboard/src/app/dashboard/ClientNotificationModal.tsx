@@ -24,7 +24,15 @@ export default function ClientNotificationModal({ open, onClose, clientId, clien
         </IconButton>
       </DialogTitle>
       <DialogContent>
-        <ClientNotificationHistory clientId={clientId} onNotify={() => onSuccess && onSuccess()} />
+        <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap" rel="stylesheet" />
+        <style>{`
+          .client-notif-modal-roboto * {
+            font-family: 'Roboto', Arial, sans-serif !important;
+          }
+        `}</style>
+        <div className="client-notif-modal-roboto">
+          <ClientNotificationHistory clientId={clientId} onNotify={() => onSuccess && onSuccess()} />
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -57,55 +57,63 @@ export default function ClientNotificationHistory({ clientId, onNotify }: { clie
 
   return (
     <div>
-      <Stack direction="row" spacing={2} mb={2} >
-        <Button
-          variant="contained"
-          color="success"
-          startIcon={<PhoneInTalkIcon />}
-          onClick={() => handleNotify("succes")}
-          disabled={notifLoading === "succes"}
-          sx={{ flex: 1 }}
-        >
-          Notifier (Succès)
-        </Button>
-        <Button
-          variant="outlined"
-          color="error"
-          startIcon={<PhoneInTalkIcon />}
-          onClick={() => handleNotify("echec")}
-          disabled={notifLoading === "echec"}
-          sx={{ flex: 1 }}
-        >
-          Notifier (Injoignable)
-        </Button>
-      </Stack>
-      {loading ? (
-        <CircularProgress size={28} />
-      ) : error ? (
-        <Alert severity="error">{error}</Alert>
-      ) : (
-        <>
-          <h4 className="font-semibold mb-2">Historique des notifications</h4>
-          {history.length === 0 ? (
-            <div className="text-gray-500">Aucune notification enregistrée.</div>
-          ) : (
-            <ul className="space-y-2">
-              {history.map(n => (
-                <li key={n.id} className="flex items-center gap-3 p-2 border rounded bg-gray-50">
-                  <Chip
-                    label={n.statut === "succes" ? "Succès" : "Échec"}
-                    color={n.statut === "succes" ? "success" : "error"}
-                    size="small"
-                  />
-                  <span className="text-sm text-gray-800">{n.canal}</span>
-                  <span className="text-xs text-gray-500">{new Date(n.date_notification).toLocaleString()}</span>
-                  <span className="text-xs text-blue-700 font-semibold">{n.utilisateur}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
-      )}
+      <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap" rel="stylesheet" />
+      <style>{`
+        .client-notif-history-roboto * {
+          font-family: 'Roboto', Arial, sans-serif !important;
+        }
+      `}</style>
+      <div className="client-notif-history-roboto">
+        <Stack direction="row" spacing={2} mb={2} >
+          <Button
+            variant="contained"
+            color="success"
+            startIcon={<PhoneInTalkIcon />}
+            onClick={() => handleNotify("succes")}
+            disabled={notifLoading === "succes"}
+            sx={{ flex: 1 }}
+          >
+            Notifier (Succès)
+          </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<PhoneInTalkIcon />}
+            onClick={() => handleNotify("echec")}
+            disabled={notifLoading === "echec"}
+            sx={{ flex: 1 }}
+          >
+            Notifier (Injoignable)
+          </Button>
+        </Stack>
+        {loading ? (
+          <CircularProgress size={28} />
+        ) : error ? (
+          <Alert severity="error">{error}</Alert>
+        ) : (
+          <>
+            <h4 className="font-semibold mb-2">Historique des notifications</h4>
+            {history.length === 0 ? (
+              <div className="text-gray-500">Aucune notification enregistrée.</div>
+            ) : (
+              <ul className="space-y-2">
+                {history.map(n => (
+                  <li key={n.id} className="flex items-center gap-3 p-2 border rounded bg-gray-50">
+                    <Chip
+                      label={n.statut === "succes" ? "Succès" : "Échec"}
+                      color={n.statut === "succes" ? "success" : "error"}
+                      size="small"
+                    />
+                    <span className="text-sm text-gray-800">{n.canal}</span>
+                    <span className="text-xs text-gray-500">{new Date(n.date_notification).toLocaleString()}</span>
+                    <span className="text-xs text-blue-700 font-semibold">{n.utilisateur}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

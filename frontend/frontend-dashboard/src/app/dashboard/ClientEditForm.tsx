@@ -325,33 +325,41 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
         <DialogTitle>Modifier le suivi du client</DialogTitle>
         <DialogContent className="max-h-[70vh] overflow-y-auto" sx={{ minWidth: 600, maxWidth: 900 }}>
           {error && <Alert severity="error">{error}</Alert>}
-          <form onSubmit={handleSubmit} autoComplete="off" id="client-edit-form">
-            {groupedFields.map(group => (
-              <React.Fragment key={group.groupLabel}>
-                {group.groupLabel !== "Commentaires" && (
-                  <div style={{ fontWeight: 600, fontSize: '1rem', margin: '32px 0 12px 0' }}>{group.groupLabel}</div>
-                )}
-                {group.fields.map((fieldOrGroup, idx) =>
-                  Array.isArray(fieldOrGroup) ? (
-                    // Regroupement horizontal : Box pour chaque champ, wrap automatique
-                    <Box display="flex" gap={2} key={idx} mb={2}>
-                      {fieldOrGroup.map(f => (
-                        <Box key={f.key} flex={1} minWidth={0}>
-                          {renderField({ ...(fieldsConfig[f.key as keyof typeof fieldsConfig]), ...f } as any)}
-                        </Box>
-                      ))}
-                    </Box>
-                  ) : (
-                    <Box display="flex" gap={2} key={fieldOrGroup.key} mb={2}>
-                      <Box flex={fieldOrGroup.key === "commentaire_agent" ? 1 : 0.5} minWidth={0}>
-                        {renderField({ ...(fieldsConfig[fieldOrGroup.key as keyof typeof fieldsConfig]), ...fieldOrGroup } as any)}
+          <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap" rel="stylesheet" />
+          <style>{`
+            .client-edit-form-roboto * {
+              font-family: 'Roboto', Arial, sans-serif !important;
+            }
+          `}</style>
+          <div className="client-edit-form-roboto">
+            <form onSubmit={handleSubmit} autoComplete="off" id="client-edit-form">
+              {groupedFields.map(group => (
+                <React.Fragment key={group.groupLabel}>
+                  {group.groupLabel !== "Commentaires" && (
+                    <div style={{ fontWeight: 600, fontSize: '1rem', margin: '32px 0 12px 0' }}>{group.groupLabel}</div>
+                  )}
+                  {group.fields.map((fieldOrGroup, idx) =>
+                    Array.isArray(fieldOrGroup) ? (
+                      // Regroupement horizontal : Box pour chaque champ, wrap automatique
+                      <Box display="flex" gap={2} key={idx} mb={2}>
+                        {fieldOrGroup.map(f => (
+                          <Box key={f.key} flex={1} minWidth={0}>
+                            {renderField({ ...(fieldsConfig[f.key as keyof typeof fieldsConfig]), ...f } as any)}
+                          </Box>
+                        ))}
                       </Box>
-                    </Box>
-                  )
-                )}
-              </React.Fragment>
-            ))}
-          </form>
+                    ) : (
+                      <Box display="flex" gap={2} key={fieldOrGroup.key} mb={2}>
+                        <Box flex={fieldOrGroup.key === "commentaire_agent" ? 1 : 0.5} minWidth={0}>
+                          {renderField({ ...(fieldsConfig[fieldOrGroup.key as keyof typeof fieldsConfig]), ...fieldOrGroup } as any)}
+                        </Box>
+                      </Box>
+                    )
+                  )}
+                </React.Fragment>
+              ))}
+            </form>
+          </div>
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose} disabled={saving}>Annuler</Button>
