@@ -35,6 +35,7 @@ import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import TimerIcon from "@mui/icons-material/Timer"; // Import TimerIcon
 import ClientNotificationModal from "./ClientNotificationModal";
 import { Snackbar } from "@mui/material";
+import ClientDetails from "./ClientDetails";
 
 interface Client {
   id: string;
@@ -280,7 +281,7 @@ export default function DashboardPage() {
     { key: 'telephone', label: 'Téléphone' },
     //{ key: 'langue', label: 'Langue' },
     { key: 'statut_general', label: 'Statut' },
-    { key: 'canal_contact', label: 'Canal' },
+    { key: 'canal_contact', label: 'Canal préféré' },
     { key: 'notification_client', label: 'Notifié' },
     { key: 'date_notification', label: 'Dernière notification' },
     { key: 'app_installee', label: 'App' },
@@ -318,7 +319,26 @@ export default function DashboardPage() {
       case 'sap_id': return client.sap_id;
       case 'telephone':
         // Non éditable en inline
-        return client.telephone;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <span>{client.telephone}</span>
+            {(client.telephone2 || client.telephone3) && (
+              <Tooltip
+                {...largeTooltipProps}
+                title={
+                  <span>
+                    <b>Autres Num. Tél.</b><br />
+                    {client.telephone2 && <>Tél 2 : {client.telephone2}<br /></>}
+                    {client.telephone3 && <>Tél 3 : {client.telephone3}</>}
+                  </span>
+                }
+                placement="top"
+              >
+                <AddCircleOutlineIcon fontSize="small" sx={{ color: '#1976d2', marginLeft: 1 }} />
+              </Tooltip>
+            )}
+          </div>
+        );
       case 'langue':
         return isEditing
           ? <TextField size="small" value={inlineEditData.langue || ''} onChange={e => setInlineEditData(d => ({ ...d, langue: e.target.value }))} />
@@ -358,9 +378,9 @@ export default function DashboardPage() {
           </div>
         );
       case 'date_notification':
-        return isEditing
-          ? <TextField size="small" value={client.date_notification ? new Date(client.date_notification).toLocaleDateString() : ''} disabled InputProps={{ readOnly: true }} />
-          : client.date_notification ? new Date(client.date_notification).toLocaleDateString() : <span className="text-gray-400">—</span>;
+        return client.date_notification
+          ? new Date(client.date_notification).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
+          : '—';
       case 'app_installee':
         return isEditing
           ? <TextField size="small" select value={`${inlineEditData.app_installee}`} onChange={e => setInlineEditData(d => ({ ...d, app_installee: e.target.value === 'true' }))}>
@@ -690,80 +710,13 @@ export default function DashboardPage() {
       <PaginationBar page={page} count={totalPages} onChange={handlePageChange} perPage={perPage} onPerPageChange={handlePerPageChange} />
       {/* Modal de détails client */}
       {selectedClient && (
-        <Dialog
+        <ClientDetails
+          selectedClient={selectedClient}
+          auditLogs={auditLogs}
           open={!!selectedClient}
           onClose={() => setSelectedClient(null)}
-          maxWidth="md"
-          fullWidth
-          scroll="paper"
-          aria-labelledby="client-details-title"
-        >
-          <DialogTitle id="client-details-title" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 5 }}>
-            <span>Détails Suivi Client</span>
-            <IconButton aria-label="Fermer" onClick={() => setSelectedClient(null)} size="large">
-              ×
-            </IconButton>
-          </DialogTitle>
-          <DialogContent dividers sx={{ display: 'flex', gap: 3, minHeight: 300, maxHeight: '100vh', overflow: 'auto' }}>
-            {/* Partie gauche : détails client */}
-            <div style={{ width: '50%', display: 'flex', flexDirection: 'column', gap: 8 ,overflowY: 'auto', padding: '16px', height: '100%'}}>
-              <div><b>ID SAP:</b> {selectedClient.sap_id}</div>
-              <div><b>Nom:</b> {selectedClient.nom_client}</div>
-              <div><b>Téléphone:</b> {selectedClient.telephone}</div>
-              {selectedClient.telephone2 && (
-                <div><b>Téléphone 2:</b> {selectedClient.telephone2}</div>
-              )}
-              {selectedClient.telephone3 && (
-                <div><b>Téléphone 3:</b> {selectedClient.telephone3}</div>
-              )}
-              <div><b>Langue:</b> {selectedClient.langue}</div>
-              <div><b>Statut:</b> <Chip label={selectedClient.statut_general} size="small" color={statutColor(selectedClient.statut_general)} /></div>
-              <div><b>Notification client:</b> {selectedClient.notification_client ? "Oui" : "Non"}</div>
-              <div><b>Dernière notification:</b> {selectedClient.date_notification || <span className="text-gray-400">—</span>}</div>
-              <div><b>A demandé aide:</b> {selectedClient.a_demande_aide ? `Oui (${selectedClient.nature_aide || ''})` : "Non"}</div>
-              <div><b>App installée:</b> {selectedClient.app_installee === false ? "Non" : selectedClient.app_installee === true ? "Oui" : <span className="text-gray-400">—</span>}</div>
-              <div><b>MàJ app:</b> {selectedClient.maj_app || <span className="text-gray-400">—</span>}</div>
-              <div><b>Commentaire agent:</b> {selectedClient.commentaire_agent || <span className="text-gray-400">—</span>}</div>
-              <div><b>CMD/Jour:</b> {selectedClient.segment_client || <span className="text-gray-400">—</span>}</div>
-              <div><b>Canal contact:</b> {selectedClient.canal_contact || <span className="text-gray-400">—</span>}</div>
-              {/*<div><b>Relance planifiée:</b> {selectedClient.relance_planifiee ? "Oui" : "Non"}</div>*/}
-            </div>
-            {/* Partie droite : historique des changements */}
-            <div style={{ width: '50%', display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto',  height: '100%' }}>
-              <h3 className="text-xl font-semibold mb-2 mt-6">Historique des changements</h3>
-              {auditLogs.length === 0 ? (
-                <div className="text-gray-500">Aucun historique disponible.</div>
-              ) : (
-                <ul className="list-disc list-inside max-h-100 overflow-auto" style={{ flex: 1 }}>
-                  {auditLogs.map(log => (
-                    <li key={log.id} className="mb-2">
-                      <div>
-                        <span className="font-medium">{new Date(log.timestamp).toLocaleString()}</span> - {log.user} - {log.action}
-                      </div>
-                      <div className="text-sm text-gray-700 space-y-1">
-                        {Object.entries(log.champs_changes).map(([field, val]) => (
-                          React.isValidElement(val) ? val : (
-                            Array.isArray(val) ? (
-                              val.map((act, idx) => (
-                                <div key={idx} className="ml-2">
-                                  • <b>{act.action}</b>: {act.reason} <span className="text-xs text-gray-500">({act.priorite})</span>
-                                </div>
-                              ))
-                            ) : (
-                              <div key={field} className="ml-2">
-                                • <b>{field}</b>: <span className="text-indigo-600">{String((val as any).old)}</span> → <span className="text-indigo-600">{String((val as any).new)}</span>
-                              </div>
-                            )
-                          )
-                        ))}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
+          statutColor={statutColor}
+        />
       )}
       {/* Modal d'édition client */}
       {editClient && (

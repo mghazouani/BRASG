@@ -37,7 +37,7 @@ class Client(models.Model):
     langue = models.CharField(max_length=20, choices=LANGUE_CHOICES)
     statut_general = models.CharField(max_length=20, choices=STATUT_CHOICES)
     notification_client = models.BooleanField(default=False)
-    date_notification = models.DateField(null=True, blank=True)
+    date_notification = models.DateTimeField(null=True, blank=True)
     action = models.CharField(max_length=255, null=True, blank=True)
     a_demande_aide = models.BooleanField(default=False)
     nature_aide = models.TextField(null=True, blank=True)
@@ -343,7 +343,7 @@ def update_client_notification_fields(sender, instance, created, **kwargs):
     if instance.client:
         # 1. Mettre à jour la date de notification si création
         if created:
-            instance.client.date_notification = instance.date_notification.date()
+            instance.client.date_notification = instance.date_notification  # Garder date + heure
         # 2. Mettre à jour notification_client selon la logique métier
         # Si au moins une notification "succes" existe, on met à True
         # Sinon, si aucune ou seulement des "echec", on met à False
