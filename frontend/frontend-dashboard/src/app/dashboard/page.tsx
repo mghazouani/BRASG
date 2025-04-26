@@ -546,9 +546,13 @@ export default function DashboardPage() {
       );
       safeForm.id = inlineEditId;
       await api.patch(`/clients/${inlineEditId}/`, safeForm);
-      setClients(clients => clients.map(c => c.id === inlineEditId ? { ...c, ...safeForm } : c));
+      // Nouvelle logique : récupérer le client complet à jour depuis l'API et remplacer dans le state
+      const res = await api.get(`/clients/${inlineEditId}/`);
+      setClients(clients => clients.map(c => c.id === inlineEditId ? res.data : c));
       setInlineEditId(null);
       setInlineEditData({});
+      // Ajout d'un toast de succès comme pour ClientEditForm
+      setEditToast({ open: true, message: "Client modifié avec succès", severity: "success" });
     } catch (err: any) {
       let msg = "Erreur lors de la sauvegarde";
       if (err?.response?.data) {
@@ -579,12 +583,12 @@ export default function DashboardPage() {
   const handleNotifSuccess = async (message = "Notification enregistrée avec succès") => {
     setNotifToast({ open: true, message, severity: "success" });
     if (notifModalClient) {
-      // Rafraîchir la date_notification ET notification_client du client concerné
+      // Rafraîchir TOUT le client à partir de la réponse API (pas seulement quelques champs)
       try {
         const res = await api.get(`/clients/${notifModalClient.id}/`);
         setClients(clients => clients.map(c =>
           c.id === notifModalClient.id
-            ? { ...c, date_notification: res.data.date_notification, notification_client: res.data.notification_client }
+            ? res.data // Remplace tout le client par la version API à jour
             : c
         ));
       } catch (err) {
