@@ -7,7 +7,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
 import Chip from "@mui/material/Chip";
 import Tooltip from "@mui/material/Tooltip";
-import HelpIcon from "@mui/icons-material/Help";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import CallIcon from "@mui/icons-material/Call";
 import IconButton from "@mui/material/IconButton";
 import EditIcon from "@mui/icons-material/EditOutlined";
@@ -216,6 +216,16 @@ export default function DashboardPage() {
     // Sinon, pas de relance
     return false;
   };
+
+  // Détermine les raisons de la relance pour le tooltip
+  function getRelanceReasons(client: Client): string[] {
+    const reasons: string[] = [];
+    if (client.app_installee === false) reasons.push("Application non installée");
+    if (!client.date_notification) reasons.push("Aucune notification envoyée");
+    else if (client.date_notification < new Date().toISOString().slice(0,10)) reasons.push("Dernière notification trop ancienne");
+    if (client.a_demande_aide === true) reasons.push("Aide demandée par le client");
+    return reasons;
+  }
 
   // Fetch clients paginés et filtrés côté backend
   useEffect(() => {
@@ -430,7 +440,7 @@ export default function DashboardPage() {
             </RadioGroup>
           : (
               client.a_demande_aide
-                ? <Tooltip {...largeTooltipProps} title={client.nature_aide || "Aide demandée"}><HelpIcon className="text-yellow-500" /></Tooltip>
+                ? <Tooltip {...largeTooltipProps} title={client.nature_aide || "Aide demandée"}><ErrorOutlineIcon className="text-yellow-500" /></Tooltip>
                 : null
             );
       case 'nature_aide':
@@ -454,17 +464,26 @@ export default function DashboardPage() {
         // Non éditable en inline
         return client.segment_client || <span className="text-gray-400">—</span>;
       case 'relance_planifiee':
-        // Icône relance : timer orange si planifiée, gris sinon
+        const relanceReasons = getRelanceReasons(client);
         return (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <IconButton 
-              onClick={() => !isEditing && handleOpenNotifModal(client)}
-              color="primary"
-              disabled={isEditing}
-            >
-              <TimerIcon sx={{ color: client.relance_planifiee ? '#fb8c00' : '#bdbdbd', fontSize: 22 }} />
-            </IconButton>
-          </div>
+          <Tooltip {...largeTooltipProps} title={<>
+            <div style={{ fontWeight: 'bold', marginBottom: 4 }}>Relance planifiée</div>
+            {relanceReasons.length > 0 ? (
+              <ul style={{ margin: 0, paddingLeft: 16, fontSize: 14, fontFamily: 'inherit' }}>
+                {relanceReasons.map(r => <li key={r}>{r}</li>)}
+              </ul>
+            ) : <div style={{ fontSize: 14, fontFamily: 'inherit' }}>Aucune raison détectée</div>}
+          </>}>
+            <span>
+              <IconButton 
+                onClick={() => !isEditing && handleOpenNotifModal(client)}
+                color="primary"
+                size="small"
+              >
+                <TimerIcon sx={{ color: client.relance_planifiee ? '#fb8c00' : '#bdbdbd', fontSize: 22 }} />
+              </IconButton>
+            </span>
+          </Tooltip>
         );
       default:
         return client[field] as React.ReactNode;

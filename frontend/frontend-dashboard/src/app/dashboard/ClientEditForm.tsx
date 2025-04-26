@@ -114,6 +114,7 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
       fields: [
         { key: 'nom_client', label: 'Nom' },
         { key: 'sap_id', label: 'SAP ID' },
+        { key: 'statut_general', label: 'Statut', type: 'select', options: settings.statut_general },
       ],
     },
     {
@@ -190,13 +191,33 @@ export default function ClientEditForm({ open, client, onClose, onSave, loading,
         />
       );
     }
-    if (key === 'date_notification') {
+    // Nom client et SAP ID : affichage uniquement, non modifiable
+    if (key === 'nom_client' || key === 'sap_id') {
       return (
         <TextField
           key={key}
           name={key}
           label={label}
           value={typeof value === 'string' ? value : ''}
+          disabled
+          fullWidth
+        />
+      );
+    }
+    if (key === 'date_notification') {
+      // Formatage de la date en dd/mm/yyyy HH:MM
+      let displayDate = '';
+      if (typeof value === 'string' && value) {
+        const d = new Date(value);
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        displayDate = `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      }
+      return (
+        <TextField
+          key={key}
+          name={key}
+          label={label}
+          value={displayDate}
           disabled
           fullWidth
         />
