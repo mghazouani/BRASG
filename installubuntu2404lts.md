@@ -40,7 +40,7 @@ GRANT ALL PRIVILEGES ON DATABASE brasg_db TO brasg_user;
 
 ### 4.2 Modifier l'accès local (optionnel, pour accès réseau)
 ```bash
-sudo nano /etc/postgresql/16/main/pg_hba.conf
+sudo nano /etc/postgresql/17cd /main/pg_hba.conf
 ```
 Remplacez `peer` par `md5` pour la ligne `local` si besoin, puis :
 ```bash
@@ -61,7 +61,8 @@ cd BRASG
 ```bash
 cd backend
 python3 -m venv venv
-source venv/bin/activate
+cd ..
+
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
@@ -92,7 +93,24 @@ sudo apt install npm
 npm install
 
 # (IMPORTANT) Créez ou éditez le fichier .env.local pour paramétrer l'URL de l'API backend :
+# /srv/BRASG/frontend/frontend-dashboard/src/app
+
 echo "NEXT_PUBLIC_API_URL=http://<adresse-backend>:8000/api/" > .env.local
+
+changer dans le fichier frontend/frontend-dashboard/src/utils/api.ts par 
+- l'adresse du backend 
+ou http://localhost:8000/api/ 
+ou par la variable NEXT_PUBLIC_API_URL "process.env	.NEXT_PUBLIC_API_URL"
+
+	const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/";
+
+	export const api = axios.create({
+  		baseURL: API_BASE_URL,
+  		...
+		});
+
+
+```
 
 npm run build
 npm start
