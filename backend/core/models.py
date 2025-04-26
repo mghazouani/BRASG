@@ -57,39 +57,62 @@ class Client(models.Model):
     def __str__(self):
         return f"{self.sap_id} - {self.nom_client}"
 
-    def save(self, *args, **kwargs):
-        # Synchroniser la région à partir de la ville sélectionnée
-        if self.ville:
-            self.region = self.ville.region
-        else:
-            self.region = ""
-        # --- RÈGLES MÉTIER AUTOMATIQUES ---
+    def evaluer_actions_metier(self):
+        """
+        Calcule et retourne la liste des actions métier à appliquer pour ce client.
+        Cette méthode doit être appelée chaque fois qu'un événement susceptible de changer la logique métier intervient (modif client, notification, etc).
+        """
         actions = []
         # 1. Statut actif
         if self.statut_general == 'actif':
-            pass  # Client actif
-        # 2. Priorisation assistance
+            pass
+        # 2. Priorisation assistance (toujours prioritaire)
         if self.a_demande_aide:
             actions.append({
                 "action": "planifier_assistance",
                 "reason": "A demandé de l’aide, assistance à prioriser.",
                 "priorite": "haute"
             })
-        # 3. Relance si app non installée ou non à jour
-        if not self.app_installee or (self.maj_app and self.maj_app.lower() != 'à jour'):
+        # 3. Suspension relance si notif succès < 1h, SAUF si demande d'aide active
+        if not self.a_demande_aide:
+            from django.utils import timezone
+            now = timezone.now()
+            derniere_notif_succes = self.notifications.filter(statut='succes').order_by('-date_notification').first()
+            if derniere_notif_succes:
+                delta = now - derniere_notif_succes.date_notification
+                if delta.total_seconds() < 3600:
+                    actions.append({
+                        "action": "aucune_relance",
+                        "reason": "Dernière notification avec succès il y a moins d'une heure.",
+                        "priorite": "basse"
+                    })
+                    return actions  # On arrête la logique relance ici (sauf assistance)
+        # 4. Relance si app non installée ou non à jour
+        from .models import default_dashboard_settings
+        settings = default_dashboard_settings()
+        version_attendue = settings.get("maj_app")
+        maj_app_client = str(self.maj_app).strip() if self.maj_app is not None else None
+        version_attendue = str(version_attendue).strip() if version_attendue is not None else None
+        if self.app_installee is not True:
             actions.append({
                 "action": "notifier_client",
-                "reason": "Application non installée ou non à jour, relance nécessaire.",
+                "reason": "Application non installée, relance nécessaire.",
                 "priorite": "normale"
             })
-        # 4. Notification à programmer si non notifié et pas de date
+        elif maj_app_client != version_attendue:
+            actions.append({
+                "action": "notifier_client",
+                "reason": f"Application installée mais version ({maj_app_client}) différente de la version attendue ({version_attendue}), relance nécessaire.",
+                "priorite": "normale"
+            })
+        # 5. Notification à programmer si non notifié et pas de date
         if not self.notification_client and not self.date_notification:
             actions.append({
                 "action": "notifier_client",
                 "reason": "Notification jamais envoyée, programmation requise.",
                 "priorite": "normale"
             })
-        # 5. Commentaire agent à surveiller
+        # 6. Commentaire agent à surveiller
         if self.commentaire_agent:
             mots_cles = ["besoin", "problème", "explication"]
             if any(mot in self.commentaire_agent.lower() for mot in mots_cles):
@@ -98,13 +121,25 @@ class Client(models.Model):
                     "reason": "Commentaire agent à surveiller (mot-clé détecté)",
                     "priorite": "haute"
                 })
-        # 6. Statut inactif/bloqué : suspendre relance
-        if self.statut_general in ["inactif", "bloque"]:
+        # 7. Statut bloqué : suspendre relance
+        if self.statut_general == "bloque":
             actions.append({
                 "action": "bloquer_relance",
-                "reason": "Client inactif ou bloqué, suspension des relances.",
+                "reason": "Client bloqué, suspension des relances.",
                 "priorite": "haute"
             })
+        return actions
+
+    def save(self, *args, **kwargs):
+        # Synchroniser la région à partir de la ville sélectionnée
+        if self.ville:
+            self.region = self.ville.region
+        else:
+            self.region = ""
+        # --- RÈGLES MÉTIER AUTOMATIQUES ---
+        actions = self.evaluer_actions_metier()
+        # Synchronisation automatique du champ relance_planifiee
+        self.relance_planifiee = any(a['action'] == 'notifier_client' for a in actions)
         # --- FIN RÈGLES MÉTIER ---
         # Audit automatique : enregistrement des changements
         is_creation = self._state.adding
@@ -146,19 +181,16 @@ class Client(models.Model):
         if user is not None and not isinstance(user, User):
             try:
                 user = User.objects.get(pk=user)
-                print(f"[AUDIT] _current_user converti en User: {user}")
-                logger.warning(f"[AUDIT] _current_user converti en User: {user}")
-            except Exception as e:
-                print(f"[AUDIT] Impossible de convertir _current_user en User: {user} ({e})")
-                logger.error(f"[AUDIT] Impossible de convertir _current_user en User: {user} ({e})")
+            except Exception:
                 user = None
-        AuditLog.objects.create(
-            table_name='Client',
-            record_id=self.id,
-            user=user,
-            action='create' if is_creation else 'update',
-            champs_changes=changes
-        )
+        if user is not None:
+            AuditLog.objects.create(
+                table_name='Client',
+                record_id=self.pk,
+                user=user,
+                action='create' if is_creation else 'update',
+                champs_changes=changes
+            )
 
 class Ville(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -345,11 +377,12 @@ def update_client_notification_fields(sender, instance, created, **kwargs):
         if created:
             instance.client.date_notification = instance.date_notification  # Garder date + heure
         # 2. Mettre à jour notification_client selon la logique métier
-        # Si au moins une notification "succes" existe, on met à True
-        # Sinon, si aucune ou seulement des "echec", on met à False
         has_success = instance.client.notifications.filter(statut='succes').exists()
         instance.client.notification_client = has_success
-        instance.client.save(update_fields=["date_notification", "notification_client"])
+        # Correction : on force un full save pour déclencher toute la logique métier
+        instance.client.save()  # NE PAS utiliser update_fields pour déclencher evaluer_actions_metier et la vérification <1h
+        # 3. Recalculer toutes les actions métier à jour (optionnel, déjà fait dans save())
+        # actions = instance.client.evaluer_actions_metier()
 
 # BONUS : si une notification est supprimée, on vérifie si notification_client doit être mis à jour
 @receiver(post_delete, sender=NotificationClient)
