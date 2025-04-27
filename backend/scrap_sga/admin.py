@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ScrapDimagazBC, ScrapDimagazBCLine, ScrapFournisseur, ScrapFournisseurCentre, ScrapUser
+from .models import ScrapDimagazBC, ScrapDimagazBCLine, ScrapFournisseur, ScrapFournisseurCentre, ScrapUser, ScrapProduct
 
 # Register your models here.
 
@@ -18,9 +18,9 @@ class ScrapDimagazBCAdmin(admin.ModelAdmin):
 
 @admin.register(ScrapDimagazBCLine)
 class ScrapDimagazBCLineAdmin(admin.ModelAdmin):
-    list_display = ('odoo_id', 'bc', 'product_name', 'qty')
-    search_fields = ('odoo_id', 'product_name')
-    list_filter = ('product_name',)
+    list_display = ('odoo_id', 'bc', 'product', 'product_name', 'qty', 'bc_date')
+    search_fields = ('odoo_id', 'product_name', 'product__name')
+    list_filter = ('product__name',)
 
 @admin.register(ScrapFournisseur)
 class ScrapFournisseurAdmin(admin.ModelAdmin):
@@ -36,3 +36,9 @@ class ScrapFournisseurCentreAdmin(admin.ModelAdmin):
 class ScrapUserAdmin(admin.ModelAdmin):
     list_display = ('odoo_id', 'display_name', 'username', 'sap_id', 'create_date', 'write_date')
     search_fields = ('odoo_id', 'display_name', 'username', 'sap_id')
+
+@admin.register(ScrapProduct)
+class ScrapProductAdmin(admin.ModelAdmin):
+    list_display = ('odoo_id', 'name', 'product_id', 'product_id_name', 'product_category', 'product_category_name', 'prix', 'product_type', 'display_name', 'create_date', 'write_date')
+    search_fields = ('name', 'display_name', 'product_id_name', 'product_category_name')
+    list_filter = ('product_type', 'product_category_name')

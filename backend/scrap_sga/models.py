@@ -42,7 +42,7 @@ class ScrapDimagazBC(models.Model):
 class ScrapDimagazBCLine(models.Model):
     odoo_id = models.IntegerField(unique=True, db_index=True)
     bc = models.ForeignKey('ScrapDimagazBC', on_delete=models.CASCADE, related_name='lines')
-    product_id = models.IntegerField(null=True, blank=True)
+    product = models.ForeignKey('ScrapProduct', null=True, blank=True, on_delete=models.SET_NULL, related_name='bc_lines')
     product_name = models.CharField(max_length=100, null=True, blank=True)
     qty = models.FloatField(null=True, blank=True)
     qty_vide = models.FloatField(null=True, blank=True)
@@ -50,12 +50,29 @@ class ScrapDimagazBCLine(models.Model):
     qty_defect = models.FloatField(null=True, blank=True)
     prix = models.FloatField(null=True, blank=True)
     subtotal = models.FloatField(null=True, blank=True)
+    bc_date = models.DateTimeField(null=True, blank=True)
     create_date = models.DateTimeField(null=True, blank=True)
     write_date = models.DateTimeField(null=True, blank=True)
     # Ajoute ici tout autre champ Odoo à synchroniser
 
     def __str__(self):
         return f"BC Line {self.odoo_id} (Produit {self.product_name})"
+
+class ScrapProduct(models.Model):
+    odoo_id = models.IntegerField(unique=True, db_index=True)
+    name = models.CharField(max_length=100)
+    product_id = models.IntegerField()
+    product_id_name = models.CharField(max_length=100, blank=True, null=True)
+    product_category = models.IntegerField(blank=True, null=True)
+    product_category_name = models.CharField(max_length=100, blank=True, null=True)
+    prix = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    product_type = models.CharField(max_length=50, blank=True, null=True)
+    display_name = models.CharField(max_length=150, blank=True, null=True)
+    create_date = models.DateTimeField(blank=True, null=True)
+    write_date = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return self.display_name or self.name
 
 class ScrapFournisseur(models.Model):
     odoo_id = models.IntegerField(unique=True)

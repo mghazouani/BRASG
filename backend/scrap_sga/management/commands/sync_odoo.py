@@ -4,7 +4,7 @@ load_dotenv()
 import xmlrpc.client
 from django.core.management.base import BaseCommand
 from django.conf import settings
-from scrap_sga.models import ScrapDimagazBC, ScrapDimagazBCLine, ScrapFournisseur, ScrapFournisseurCentre, ScrapUser
+from scrap_sga.models import ScrapDimagazBC, ScrapDimagazBCLine, ScrapFournisseur, ScrapFournisseurCentre, ScrapUser, ScrapProduct
 from django.db import transaction
 from datetime import datetime
 from django.utils import timezone
@@ -35,11 +35,13 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--batch-size', type=int, default=100, help='Taille du batch pour la synchro Odoo')
         parser.add_argument('--last', type=int, default=None, help='Limiter aux X derniers BC (et leurs lignes)')
+        parser.add_argument('--name', type=str, default=None, help='Filtrer sur le champ name de dimagaz.bc')
 
     def handle(self, *args, **options):
         batch_size = options['batch_size']
         last = options['last']
-        self.stdout.write(self.style.NOTICE(f'Connexion à Odoo... (batch_size={batch_size}, last={last})'))
+        name = options['name']
+        self.stdout.write(self.style.NOTICE(f'Connexion à Odoo... (batch_size={batch_size}, last={last}, name={name})'))
         common = xmlrpc.client.ServerProxy(f"{ODOO_URL}/xmlrpc/2/common")
         uid = common.authenticate(ODOO_DB, ODOO_USER, ODOO_PASSWORD, {})
         if not uid:
@@ -48,7 +50,11 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"Connecté à Odoo UID={uid}"))
         models = xmlrpc.client.ServerProxy(f"{ODOO_URL}/xmlrpc/2/object")
 
-        bc_ids = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.bc', 'search', [[]], {'order': 'id desc'})
+        # Recherche filtrée sur name si précisé
+        bc_search_domain = []
+        if name:
+            bc_search_domain.append(('name', '=', name))
+        bc_ids = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.bc', 'search', [bc_search_domain], {'order': 'id desc'})
         if last:
             bc_ids = bc_ids[:last]
         bc_ids = list(reversed(bc_ids))
@@ -115,18 +121,24 @@ class Command(BaseCommand):
                     if line_ids:
                         line_records = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.bc.line', 'read', [line_ids])
                         for line in line_records:
+                            # Résolution de la FK produit
+                            product_obj = None
+                            product_id = line.get('product', [None])[0]
+                            if product_id:
+                                product_obj = ScrapProduct.objects.filter(odoo_id=product_id).first()
                             ScrapDimagazBCLine.objects.update_or_create(
                                 odoo_id=line['id'],
                                 defaults={
                                     'bc': bc_obj,
-                                    'product_id': line.get('product', [None])[0],
+                                    'product': product_obj,
                                     'product_name': line.get('product', [None, None])[1],
                                     'qty': line.get('qty'),
                                     'qty_vide': line.get('qty_vide'),
                                     'qty_retenue': line.get('qty_retenue'),
                                     'qty_defect': line.get('qty_defect'),
                                     'prix': line.get('prix'),
-                                    'subtotal': line.get('subtotal'),
+                                    'subtotal': round(float(line.get('subtotal', 0.0)), 2) if line.get('subtotal') is not None else None,
+                                    'bc_date': parse_odoo_datetime(line.get('bc_date')),
                                     'create_date': parse_odoo_datetime(line.get('create_date')),
                                     'write_date': parse_odoo_datetime(line.get('write_date')),
                                 }
