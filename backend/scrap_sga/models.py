@@ -106,3 +106,35 @@ class ScrapUser(models.Model):
 
     def __str__(self):
         return self.display_name
+
+class AuditLog(models.Model):
+    model_name = models.CharField(max_length=100)
+    object_id = models.CharField(max_length=50)
+    action = models.CharField(max_length=20)  # created, updated, deleted
+    changed_by = models.CharField(max_length=100, null=True, blank=True)  # script, admin, etc.
+    change_time = models.DateTimeField(auto_now_add=True)
+    diff = models.JSONField(null=True, blank=True)  # Avant/Après ou valeurs modifiées
+    source = models.CharField(max_length=50, default='sync_script')
+
+    def __str__(self):
+        return f"[{self.change_time}] {self.model_name}({self.object_id}) {self.action} by {self.changed_by or self.source}"
+
+class ScrappingConsole(models.Model):
+    SCRAP_CHOICES = [
+        ('sync_user', 'sync_user'),
+        ('sync_products', 'sync_products'),
+        ('sync_FounisseursCentres', 'sync_FounisseursCentres'),
+        ('sync_BcLinbc', 'sync_BcLinbc'),
+    ]
+    scrap_type = models.CharField(max_length=40, choices=SCRAP_CHOICES)
+    last_run = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=20, default='idle')  # idle, running, success, failed
+    params = models.JSONField(default=dict, blank=True)  # ex: {"batch_size": 10, "last": 100}
+    result = models.TextField(blank=True)  # logs ou résumé du dernier run
+    auto_schedule = models.BooleanField(default=False)
+    schedule_cron = models.CharField(max_length=100, blank=True, help_text="Expression cron si auto_schedule")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Scrap {self.scrap_type} ({self.status})"

@@ -5,8 +5,10 @@ import xmlrpc.client
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from scrap_sga.models import ScrapUser
+from scrap_sga.utils_audit import log_audit, compute_diff, log_delete
 from datetime import datetime
 from django.utils import timezone
+from django.forms.models import model_to_dict
 
 ODOO_URL = os.environ.get('ODOO_URL')
 ODOO_DB = os.environ.get('ODOO_DB')
@@ -40,7 +42,8 @@ class Command(BaseCommand):
                 continue
             u = users[0]
             with transaction.atomic():
-                ScrapUser.objects.update_or_create(
+                old_obj = ScrapUser.objects.filter(odoo_id=u['id']).first()
+                obj, created = ScrapUser.objects.update_or_create(
                     odoo_id=u['id'],
                     defaults={
                         'name': u.get('name', ''),
@@ -52,4 +55,14 @@ class Command(BaseCommand):
                         'write_date': parse_odoo_datetime(u.get('write_date')),
                     }
                 )
+                diff = compute_diff(old_obj, obj) if not created else None
+                log_audit(obj, 'created' if created else 'updated', changed_by='sync_user', diff=diff, source='sync_script')
+        # Suppression des users locaux absents d'Odoo
+        odoo_ids = set(user_ids)
+        local_ids = set(ScrapUser.objects.values_list('odoo_id', flat=True))
+        to_delete = local_ids - odoo_ids
+        for del_id in to_delete:
+            obj = ScrapUser.objects.get(odoo_id=del_id)
+            log_delete(obj, changed_by='sync_user', source='sync_script')
+            obj.delete()
         self.stdout.write(self.style.SUCCESS('Synchronisation des utilisateurs terminée.'))
