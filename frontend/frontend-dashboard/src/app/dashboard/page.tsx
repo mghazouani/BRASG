@@ -36,6 +36,7 @@ import TimerIcon from "@mui/icons-material/Timer"; // Import TimerIcon
 import ClientNotificationModal from "./ClientNotificationModal";
 import { Snackbar } from "@mui/material";
 import ClientDetails from "./ClientDetails";
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
 
 interface Client {
   id: string;
@@ -339,7 +340,13 @@ export default function DashboardPage() {
   const renderCell = (client: Client, field: keyof Client): React.ReactNode => {
     const isEditing = inlineEditId === client.id;
     switch (field) {
-      case 'nom_client': return <b>{client.nom_client}</b>;
+      case 'nom_client':
+        return (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <b>{client.nom_client}</b>
+            <CredentialsTooltip sapId={client.sap_id} />
+          </span>
+        );
       case 'sap_id': return client.sap_id;
       case 'telephone':
         // Non éditable en inline
@@ -624,6 +631,52 @@ export default function DashboardPage() {
 
   // --- Ajout style zebra pour lignes du tableau ---
   const zebraBlue = ['#e3f2fd', '#bbdefb'];
+
+  // --- Ajout du composant CredentialsTooltip ---
+  function CredentialsTooltip({ sapId }: { sapId: string }) {
+    const [credentials, setCredentials] = useState<{ username: string; password: string } | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchCredentials = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await api.get(`/scrap/user/?sap_id=${encodeURIComponent(sapId)}`);
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          setCredentials({ username: res.data[0].username, password: res.data[0].password });
+        } else {
+          setCredentials(null);
+        }
+      } catch (err: any) {
+        setError('Erreur chargement credentials');
+        setCredentials(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return (
+      <Tooltip
+        title={
+          loading ? <CircularProgress size={16} /> :
+          error ? error :
+          credentials ? (
+            <span>
+              <b>Login:</b> {credentials.username}<br />
+              <b>Mot de passe:</b> {credentials.password}
+            </span>
+          ) : 'Aucun identifiant trouvé'
+        }
+        arrow
+        onOpen={fetchCredentials}
+      >
+        <IconButton size="small" style={{ marginLeft: 2 }}>
+          <VpnKeyIcon fontSize="small" color="action" />
+        </IconButton>
+      </Tooltip>
+    );
+  }
 
   return (
     <main className="min-h-screen flex flex-col items-center p-8 transition-colors duration-300" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>

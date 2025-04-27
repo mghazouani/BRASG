@@ -1,4 +1,5 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, filters
+from django_filters.rest_framework import DjangoFilterBackend
 from .models import ScrapDimagazBC, ScrapDimagazBCLine, ScrapProduct, ScrapFournisseur, ScrapFournisseurCentre, ScrapUser
 from .serializers import ScrapDimagazBCSerializer, ScrapDimagazBCLineSerializer, ScrapProductSerializer, ScrapFournisseurSerializer, ScrapFournisseurCentreSerializer, ScrapUserSerializer
 
@@ -25,3 +26,6 @@ class ScrapFournisseurCentreViewSet(viewsets.ModelViewSet):
 class ScrapUserViewSet(viewsets.ModelViewSet):
     queryset = ScrapUser.objects.all().order_by('-id')
     serializer_class = ScrapUserSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['sap_id']
+    search_fields = ['sap_id', 'username', 'display_name']

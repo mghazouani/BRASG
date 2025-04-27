@@ -25,7 +25,8 @@ Ce document sera mis à jour après chaque modification ou étape technique impo
   → Celery + Redis configurés, tâche `sync_bc_linbc_task` exécutée toutes les minutes, logs visibles dans le worker, robustesse Windows/Linux assurée (pool=solo sous Windows)
 - [x] Correction de la synchro des lignes BC :
   → À chaque BC importé, toutes les lignes associées sont créées/mises à jour (update_or_create) ; suppression locale sélective seulement des lignes absentes d’Odoo pour le BC traité. Plus aucun risque de perte de lignes lors d’un scrap partiel ou d’une table vide.
-- [ ] Exposition des données via API DRF
+- [x] Exposition des données via API DRF (scrap_sga)
+  → Endpoints REST créés pour tous les modèles métiers : `bc`, `bc-line`, `product`, `fournisseur`, `fournisseur-centre`, `user`. Consommation possible via `/api/scrap/*` (PowerBI, front, outils externes). Sérializers et ViewSets DRF standards, pagination et sécurité DRF natives.
 - [ ] Mécanisme de relance/résynchronisation en cas d’échec
 
 Chaque étape sera cochée et détaillée au fur et à mesure de l’avancement.
@@ -33,5 +34,6 @@ Chaque étape sera cochée et détaillée au fur et à mesure de l’avancement.
 ---
 
 **Dernière action :**
-- Synchro BC/lines 100% fiable : insertion des lignes BC rétablie, suppression sélective OK, scrap partiel (--date) et scrap complet robustes.
-- Planification Celery Beat passée à 1 minute.
+- API DRF : exposition complète des modèles product, user, fournisseur, centre, BC et lignes BC.
+- Endpoints `/api/scrap/*` prêts à l’emploi pour intégration externe.
+- Commité et poussé sur GitHub.
