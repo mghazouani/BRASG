@@ -1,0 +1,75 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+import xmlrpc.client
+from django.core.management.base import BaseCommand
+from django.db import transaction
+from scrap_sga.models import ScrapFournisseur, ScrapFournisseurCentre
+from datetime import datetime
+from django.utils import timezone
+
+ODOO_URL = os.environ.get('ODOO_URL')
+ODOO_DB = os.environ.get('ODOO_DB')
+ODOO_USER = os.environ.get('ODOO_USER')
+ODOO_PASSWORD = os.environ.get('ODOO_PASSWORD')
+
+def parse_odoo_datetime(dt_str):
+    if not dt_str:
+        return None
+    dt = datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
+    return timezone.make_aware(dt, timezone.utc)
+
+class Command(BaseCommand):
+    help = 'Synchronise les fournisseurs et centres depuis Odoo (à la demande)'
+
+    def handle(self, *args, **options):
+        self.stdout.write(self.style.NOTICE('Connexion à Odoo...'))
+        common = xmlrpc.client.ServerProxy(f"{ODOO_URL}/xmlrpc/2/common")
+        uid = common.authenticate(ODOO_DB, ODOO_USER, ODOO_PASSWORD, {})
+        if not uid:
+            self.stdout.write(self.style.ERROR('Echec authentification Odoo'))
+            return
+        self.stdout.write(self.style.SUCCESS(f"Connecté à Odoo UID={uid}"))
+        models = xmlrpc.client.ServerProxy(f"{ODOO_URL}/xmlrpc/2/object")
+
+        # --- Fournisseurs ---
+        fournisseur_ids = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.fournisseur', 'search', [[]])
+        fournisseurs = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.fournisseur', 'read', [fournisseur_ids])
+        self.stdout.write(f"{len(fournisseurs)} fournisseurs trouvés.")
+        if fournisseurs:
+            self.stdout.write(f"Champs fournisseur : {list(fournisseurs[0].keys())}")
+        for f in fournisseurs:
+            with transaction.atomic():
+                ScrapFournisseur.objects.update_or_create(
+                    odoo_id=f['id'],
+                    defaults={
+                        'name': f.get('display_name', ''),
+                        'centre_ids': f.get('centre_ids', []),
+                        'create_date': parse_odoo_datetime(f.get('create_date')),
+                        'write_date': parse_odoo_datetime(f.get('write_date')),
+                    }
+                )
+
+        # --- Centres ---
+        centre_ids = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.fournisseur.centre', 'search', [[]])
+        centres = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.fournisseur.centre', 'read', [centre_ids])
+        self.stdout.write(f"{len(centres)} centres trouvés.")
+        if centres:
+            self.stdout.write(f"Champs centre : {list(centres[0].keys())}")
+        for c in centres:
+            fournisseur_obj = None
+            centre_id_field = c.get('centre_id')
+            fournisseur_id = centre_id_field[0] if isinstance(centre_id_field, list) and len(centre_id_field) > 0 else None
+            if fournisseur_id:
+                fournisseur_obj = ScrapFournisseur.objects.filter(odoo_id=fournisseur_id).first()
+            with transaction.atomic():
+                ScrapFournisseurCentre.objects.update_or_create(
+                    odoo_id=c['id'],
+                    defaults={
+                        'name': c.get('display_name', ''),
+                        'fournisseur': fournisseur_obj,
+                        'create_date': parse_odoo_datetime(c.get('create_date')),
+                        'write_date': parse_odoo_datetime(c.get('write_date')),
+                    }
+                )
+        self.stdout.write(self.style.SUCCESS('Synchronisation fournisseurs et centres terminée.'))

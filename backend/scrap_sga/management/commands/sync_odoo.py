@@ -45,6 +45,12 @@ class Command(BaseCommand):
             bc_ids = bc_ids[:last]
         bc_ids = list(reversed(bc_ids))  # Pour traiter dans l'ordre croissant d'id
         self.stdout.write(f"{len(bc_ids)} BC trouvés.")
+        if bc_ids:
+            bc_records = models.execute_kw(
+                ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.bc', 'read', [bc_ids]
+            )
+            if bc_records:
+                self.stdout.write(f"Champs BC : {list(bc_records[0].keys())}")
         for offset in range(0, len(bc_ids), batch_size):
             batch_ids = bc_ids[offset:offset+batch_size]
             bc_records = models.execute_kw(
@@ -69,6 +75,8 @@ class Command(BaseCommand):
                     line_ids = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.bc.line', 'search', [[('bc_id', '=', bc['id'])]])
                     if line_ids:
                         line_records = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.bc.line', 'read', [line_ids])
+                        if line_records:
+                            self.stdout.write(f"Champs ligne BC : {list(line_records[0].keys())}")
                         for line in line_records:
                             ScrapDimagazBCLine.objects.update_or_create(
                                 odoo_id=line['id'],
