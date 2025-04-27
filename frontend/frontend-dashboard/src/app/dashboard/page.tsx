@@ -90,6 +90,28 @@ const statutColor = (statut: string) => {
   }
 };
 
+// Props pour tooltip large (marge, padding, etc.)
+const largeTooltipProps: Partial<TooltipProps> = {
+  componentsProps: {
+    tooltip: {
+      sx: {
+        fontSize: 15,
+        padding: 2,
+        bgcolor: '#fafafa',
+        color: '#222',
+        border: '1px solid #1976d2',
+        boxShadow: 2,
+        maxWidth: 300,
+      },
+    },
+    arrow: {
+      sx: {
+        color: '#1976d2',
+      },
+    },
+  },
+};
+
 export default function DashboardPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -305,23 +327,7 @@ export default function DashboardPage() {
   ];
 
   // Utilitaire pour agrandir la taille des tooltips (NOUVEAU STYLE)
-  const largeTooltipProps = {
-    componentsProps: {
-      tooltip: {
-        sx: {
-          fontSize: '1rem',
-          padding: '10px 15px',
-          maxWidth: 300,
-          backgroundColor: '#333',
-          color: '#fff',
-          borderRadius: '8px',
-          boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.2)',
-          lineHeight: 1.5,
-          whiteSpace: 'normal',
-        },
-      },
-    },
-  };
+  
 
   // --- MODIF centralisation colonnes dashboard ---
   const centerColumns = [
@@ -643,8 +649,9 @@ export default function DashboardPage() {
       setError(null);
       try {
         const res = await api.get(`/scrap/user/?sap_id=${encodeURIComponent(sapId)}`);
-        if (Array.isArray(res.data) && res.data.length > 0) {
-          setCredentials({ username: res.data[0].username, password: res.data[0].password });
+        const users = Array.isArray(res.data.results) ? res.data.results : res.data;
+        if (Array.isArray(users) && users.length > 0) {
+          setCredentials({ username: users[0].username, password: users[0].password });
         } else {
           setCredentials(null);
         }
@@ -658,22 +665,23 @@ export default function DashboardPage() {
 
     return (
       <Tooltip
+        {...largeTooltipProps}
         title={
           loading ? <CircularProgress size={16} /> :
           error ? error :
           credentials ? (
             <span>
-              <b>Login:</b> {credentials.username}<br />
-              <b>Mot de passe:</b> {credentials.password}
+              <b>Identifiants ASG</b><br />
+              <span style={{ color: '#1976d2' }}>Utilisateur</span> : {credentials.username}<br />
+              <span style={{ color: '#1976d2' }}>Mot de passe</span> : {credentials.password}
             </span>
           ) : 'Aucun identifiant trouvé'
         }
+        placement="top"
         arrow
         onOpen={fetchCredentials}
       >
-        <IconButton size="small" style={{ marginLeft: 2 }}>
-          <VpnKeyIcon fontSize="small" color="action" />
-        </IconButton>
+        <VpnKeyIcon fontSize="small" sx={{ color: '#1976d2', marginLeft: 1, cursor: 'pointer' }} />
       </Tooltip>
     );
   }
