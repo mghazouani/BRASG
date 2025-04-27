@@ -4,7 +4,7 @@ load_dotenv()
 import xmlrpc.client
 from django.core.management.base import BaseCommand
 from django.conf import settings
-from scrap_sga.models import ScrapDimagazBC, ScrapDimagazBCLine
+from scrap_sga.models import ScrapDimagazBC, ScrapDimagazBCLine, ScrapFournisseur, ScrapFournisseurCentre, ScrapUser
 from django.db import transaction
 from datetime import datetime
 from django.utils import timezone
@@ -19,6 +19,15 @@ def parse_odoo_datetime(dt_str):
         return None
     dt = datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
     return timezone.make_aware(dt, timezone.utc)
+
+def to_bool(val):
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, (int, float)):
+        return val != 0
+    if isinstance(val, str):
+        return val.strip().lower() in ('1', 'true', 'yes', 'y', 'vrai', 'oui', 'on')
+    return False
 
 class Command(BaseCommand):
     help = 'Synchronise les BC et lignes BC depuis Odoo vers la base locale (anti-doublon, upsert)'
@@ -39,18 +48,11 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"Connecté à Odoo UID={uid}"))
         models = xmlrpc.client.ServerProxy(f"{ODOO_URL}/xmlrpc/2/object")
 
-        # --- Recherche des BC (avec limite si --last) ---
         bc_ids = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.bc', 'search', [[]], {'order': 'id desc'})
         if last:
             bc_ids = bc_ids[:last]
-        bc_ids = list(reversed(bc_ids))  # Pour traiter dans l'ordre croissant d'id
+        bc_ids = list(reversed(bc_ids))
         self.stdout.write(f"{len(bc_ids)} BC trouvés.")
-        if bc_ids:
-            bc_records = models.execute_kw(
-                ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.bc', 'read', [bc_ids]
-            )
-            if bc_records:
-                self.stdout.write(f"Champs BC : {list(bc_records[0].keys())}")
         for offset in range(0, len(bc_ids), batch_size):
             batch_ids = bc_ids[offset:offset+batch_size]
             bc_records = models.execute_kw(
@@ -58,15 +60,52 @@ class Command(BaseCommand):
             )
             self.stdout.write(f"Traitement du batch {offset//batch_size + 1} : {len(batch_ids)} BC...")
             for bc in bc_records:
+                # Résolution des FK Odoo
+                fournisseur_obj = None
+                fournisseur_centre_obj = None
+                depositaire_obj = None
+                fournisseur_id = bc.get('fournisseur', [None])[0]
+                if fournisseur_id:
+                    fournisseur_obj = ScrapFournisseur.objects.filter(odoo_id=fournisseur_id).first()
+                fournisseur_centre_id = bc.get('fournisseur_centre', [None])[0]
+                if fournisseur_centre_id:
+                    fournisseur_centre_obj = ScrapFournisseurCentre.objects.filter(odoo_id=fournisseur_centre_id).first()
+                depositaire_id = bc.get('depositaire', [None])[0]
+                if depositaire_id:
+                    depositaire_obj = ScrapUser.objects.filter(odoo_id=depositaire_id).first()
                 with transaction.atomic():
                     bc_obj, created = ScrapDimagazBC.objects.update_or_create(
                         odoo_id=bc['id'],
                         defaults={
                             'name': bc.get('name', ''),
-                            'depositaire_id': bc.get('depositaire', [None])[0],
-                            'depositaire_name': bc.get('depositaire', [None, None])[1],
-                            'date_bc': parse_odoo_datetime(bc.get('bc_date')),
+                            'fullname': bc.get('fullname', ''),
+                            'bc_date': parse_odoo_datetime(bc.get('bc_date')),
+                            'bl_date': parse_odoo_datetime(bc.get('bl_date')),
+                            'fournisseur': fournisseur_obj,
+                            'fournisseur_centre': fournisseur_centre_obj,
+                            'depositaire': depositaire_obj,
+                            'montant_paye': round(float(bc.get('montant_paye', 0.0)), 2) if bc.get('montant_paye') is not None else None,
+                            'done': to_bool(bc.get('done')),
+                            'sap': to_bool(bc.get('sap')),
+                            'confirmed': to_bool(bc.get('confirmed')),
+                            'remise': bc.get('remise'),
+                            'tva': bc.get('tva'),
+                            'ht': round(float(bc.get('ht', 0.0)), 2) if bc.get('ht') is not None else None,
+                            'ttc': round(float(bc.get('ttc', 0.0)), 2) if bc.get('ttc') is not None else None,
+                            'bc_type': bc.get('bc_type', ''),
                             'state': bc.get('state', ''),
+                            'terminated': to_bool(bc.get('terminated')),
+                            'verify_state': bc.get('verify_state', ''),
+                            'qty_retenue': bc.get('qty_retenue'),
+                            'paye_par': bc.get('paye_par', ''),
+                            'bl_number': bc.get('bl_number', ''),
+                            'solde': round(float(bc.get('solde', 0.0)), 2) if bc.get('solde') is not None else None,
+                            'non_conforme': to_bool(bc.get('non_conforme')),
+                            'version': to_bool(bc.get('version')),
+                            'prefix': to_bool(bc.get('prefix')),
+                            'source': bc.get('source', ''),
+                            'product_type': bc.get('product_type', ''),
+                            'display_name': bc.get('display_name', ''),
                             'create_date': parse_odoo_datetime(bc.get('create_date')),
                             'write_date': parse_odoo_datetime(bc.get('write_date')),
                         }
@@ -75,8 +114,6 @@ class Command(BaseCommand):
                     line_ids = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.bc.line', 'search', [[('bc_id', '=', bc['id'])]])
                     if line_ids:
                         line_records = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.bc.line', 'read', [line_ids])
-                        if line_records:
-                            self.stdout.write(f"Champs ligne BC : {list(line_records[0].keys())}")
                         for line in line_records:
                             ScrapDimagazBCLine.objects.update_or_create(
                                 odoo_id=line['id'],

@@ -5,9 +5,16 @@ from .models import ScrapDimagazBC, ScrapDimagazBCLine, ScrapFournisseur, ScrapF
 
 @admin.register(ScrapDimagazBC)
 class ScrapDimagazBCAdmin(admin.ModelAdmin):
-    list_display = ('odoo_id', 'name', 'depositaire_name', 'date_bc')
-    search_fields = ('odoo_id', 'name', 'depositaire_name')
-    list_filter = ('depositaire_name',)
+    list_display = (
+        'odoo_id', 'name', 'fullname', 'bc_date', 'bl_date',
+        'fournisseur', 'fournisseur_centre', 'depositaire',
+        'montant_paye', 'done', 'sap', 'confirmed', 'remise', 'tva', 'ht', 'ttc',
+        'bc_type', 'state', 'terminated', 'verify_state', 'qty_retenue', 'paye_par',
+        'bl_number', 'solde', 'non_conforme', 'version', 'prefix', 'source', 'product_type',
+        'display_name', 'create_date', 'write_date'
+    )
+    search_fields = ('odoo_id', 'name', 'fullname', 'display_name')
+    list_filter = ('fournisseur', 'fournisseur_centre', 'depositaire', 'done', 'sap', 'confirmed', 'state', 'terminated', 'non_conforme', 'product_type')
 
 @admin.register(ScrapDimagazBCLine)
 class ScrapDimagazBCLineAdmin(admin.ModelAdmin):
