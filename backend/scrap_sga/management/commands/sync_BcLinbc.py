@@ -177,8 +177,42 @@ class Command(BaseCommand):
                     # Synchronisation des lignes associées à ce BC
                     line_search_domain = [('bc_id', '=', bc_id)]
                     line_ids = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.bc.line', 'search', [line_search_domain])
-                    # Suppression des logs de debug détaillés (création/MAJ ligne, records, etc.)
-                    pass  # Ici, on garde juste la logique métier, sans logs verbeux
+                    if line_ids:
+                        line_records = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.bc.line', 'read', [line_ids])
+                        for line in line_records:
+                            product_obj = None
+                            product_id = line.get('product', [None])[0]
+                            if product_id:
+                                product_obj = ScrapProduct.objects.filter(odoo_id=product_id).first()
+                            old_line = ScrapDimagazBCLine.objects.filter(odoo_id=line['id']).first()
+                            obj, created = ScrapDimagazBCLine.objects.update_or_create(
+                                odoo_id=line['id'],
+                                defaults={
+                                    'bc': bc_obj,
+                                    'product': product_obj,
+                                    'product_name': line.get('product', [None, None])[1],
+                                    'qty': line.get('qty'),
+                                    'qty_vide': line.get('qty_vide'),
+                                    'qty_retenue': line.get('qty_retenue'),
+                                    'qty_defect': line.get('qty_defect'),
+                                    'prix': line.get('prix'),
+                                    'subtotal': round(float(line.get('subtotal', 0.0)), 2) if line.get('subtotal') is not None else None,
+                                    'bc_date': parse_odoo_datetime(line.get('bc_date')),
+                                    'create_date': parse_odoo_datetime(line.get('create_date')),
+                                    'write_date': parse_odoo_datetime(line.get('write_date')),
+                                }
+                            )
+                            diff_line = compute_diff(old_line, obj) if not created else None
+                            log_audit(obj, 'created' if created else 'updated', changed_by='sync_BcLinbc', diff=diff_line, source='sync_script')
+                    # --- Suppression des lignes BC locales absentes d'Odoo pour ce BC (sans filtre date) ---
+                    all_line_ids = set(models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.bc.line', 'search', [[('bc_id', '=', bc_id)]]))
+                    local_line_ids = set(ScrapDimagazBCLine.objects.filter(bc=bc_obj).values_list('odoo_id', flat=True))
+                    to_delete_line = local_line_ids - all_line_ids
+                    for del_id in to_delete_line:
+                        obj = ScrapDimagazBCLine.objects.get(odoo_id=del_id)
+                        log_delete(obj, changed_by='sync_BcLinbc', source='sync_script')
+                        obj.delete()
+
                 # --- Fin de synchronisation d'un BC ---
                 # Log léger : nombre de lignes BC présentes
                 nb_lines = ScrapDimagazBCLine.objects.filter(bc=bc_obj).count()

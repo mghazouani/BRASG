@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'villes',
     'corsheaders',
     'scrap_sga',
+    'celery',  # Add this line
 ]
 
 MIDDLEWARE = [
@@ -159,3 +160,20 @@ REST_FRAMEWORK = {
         'rest_framework.filters.OrderingFilter',
     ],
 }
+
+# --- Configuration Celery/Redis ---
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Europe/Paris'
+
+from celery.schedules import crontab
+CELERY_BEAT_SCHEDULE = {
+    'sync_bc_linbc_every_1min': {
+        'task': 'scrap_sga.tasks.sync_bc_linbc_task',
+        'schedule': 60,  # toutes les 1 minute
+    },
+}
+# --- Fin config Celery ---

@@ -40,7 +40,7 @@ GRANT ALL PRIVILEGES ON DATABASE brasg_db TO brasg_user;
 
 ### 4.2 Modifier l'accès local (optionnel, pour accès réseau)
 ```bash
-sudo nano /etc/postgresql/17cd /main/pg_hba.conf
+sudo nano /etc/postgresql/17/main/pg_hba.conf
 ```
 Remplacez `peer` par `md5` pour la ligne `local` si besoin, puis :
 ```bash
@@ -85,6 +85,55 @@ python manage.py createsuperuser
 ```bash
 python manage.py runserver 0.0.0.0:8000
 ```
+
+## 6.bis Installation et configuration de Celery + Redis pour la synchronisation automatique
+
+```bash
+# Installer Redis (service de messages pour Celery)
+sudo apt install redis-server
+sudo systemctl enable redis-server
+sudo systemctl start redis-server
+
+# Installer Celery et lier à Django (dans le venv Python du backend)
+pip install celery redis
+```
+
+**Configuration Django**
+- Vérifiez que `celery.py` est bien dans le dossier principal du projet Django (`backend/brasg_backend/`).
+- Ajoutez dans `settings.py` :
+```python
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_BEAT_SCHEDULE = {
+    'sync_bc_linbc_every_5min': {
+        'task': 'scrap_sga.tasks.sync_bc_linbc_task',
+        'schedule': 300,  # toutes les 5 minutes
+    },
+}
+```
+- Créez le fichier `tasks.py` dans `scrap_sga` si besoin :
+```python
+from celery import shared_task
+import subprocess
+
+@shared_task
+def sync_bc_linbc_task():
+    subprocess.call(['python', 'manage.py', 'sync_BcLinbc'])
+```
+
+**Lancement des workers Celery**
+Dans deux terminaux :
+```bash
+cd /srv/BRASG/backend
+celery -A brasg_backend worker --loglevel=info
+celery -A brasg_backend beat --loglevel=info
+```
+
+**Vérification**
+- La synchro BC/lines s’exécutera automatiquement toutes les 5 minutes.
+- Les logs apparaîtront dans la console Celery.
+
+---
 
 ## 7. Frontend React (dashboard)
 ```bash
