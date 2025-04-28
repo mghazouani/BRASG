@@ -3,4 +3,4 @@ import subprocess
 
 @shared_task
 def sync_bc_linbc_task():
-    subprocess.call(['python', 'manage.py', 'sync_BcLinbc', '--date', '1'])
+    subprocess.call(['python', 'manage.py', 'sync_BcLinbc'])

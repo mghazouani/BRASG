@@ -62,6 +62,10 @@ Garantir une synchronisation fiable, incrémentale et performante des Bons de Co
 - Limiter les champs récupérés pour optimiser le réseau
 - Logger toutes les erreurs et actions majeures
 - Toujours relâcher le lock même en cas d’erreur
+- Ne jamais utiliser de champ Odoo non présent dans le modèle cible (ex : 'product_name' sur dimagaz.bc.line)
+- Toujours vérifier la cohérence des clés utilisées pour les lignes BC (ex : 'order_line' vs 'bc_lines')
+- Utiliser l’option `--reset` pour forcer une synchro globale complète si besoin
+- Pour afficher le nom produit d’une ligne BC, passer par la relation `product` côté Django
 
 ---
 
@@ -71,6 +75,8 @@ Garantir une synchronisation fiable, incrémentale et performante des Bons de Co
 - [x] Timeout XML-RPC global
 - [x] Récupération sélective des champs Odoo (fields)
 - [x] Logging détaillé par BC et global + monitoring persistant (SyncLog)
+- [x] Correction de la synchronisation des lignes BC (clé correcte, suppression du champ inexistant 'product_name')
+- [x] Ajout de l’option --reset pour forcer une synchro globale
 - [ ] Ajout de la gestion fine des suppressions de BC (archivage, non suppression)
 - [ ] Tests de robustesse et volumétrie
 - [ ] Documentation technique et métier
