@@ -43,18 +43,24 @@ class Command(BaseCommand):
                 product_id_val = prod.get('product_id', None)
                 if isinstance(product_id_val, (list, tuple)) and product_id_val:
                     product_id = product_id_val[0]
+                    product_id_name = product_id_val[1] if len(product_id_val) > 1 else ''
                 elif isinstance(product_id_val, int):
                     product_id = product_id_val
+                    product_id_name = ''
                 else:
                     product_id = None
+                    product_id_name = ''
 
                 product_category_val = prod.get('product_category', None)
                 if isinstance(product_category_val, (list, tuple)) and product_category_val:
                     product_category = product_category_val[0]
+                    product_category_name = product_category_val[1] if len(product_category_val) > 1 else ''
                 elif isinstance(product_category_val, int):
                     product_category = product_category_val
+                    product_category_name = ''
                 else:
                     product_category = None
+                    product_category_name = ''
 
                 old_obj = ScrapProduct.objects.filter(odoo_id=prod['id']).first()
                 obj, created = ScrapProduct.objects.update_or_create(
@@ -62,9 +68,9 @@ class Command(BaseCommand):
                     defaults={
                         'name': prod.get('name', ''),
                         'product_id': product_id,
-                        'product_id_name': prod.get('product_id_name', ''),
+                        'product_id_name': product_id_name,
                         'product_category': product_category,
-                        'product_category_name': prod.get('product_category_name', ''),
+                        'product_category_name': product_category_name,
                         'prix': prod.get('prix', 0.0),
                         'product_type': prod.get('product_type', ''),
                         'display_name': prod.get('display_name', ''),

@@ -28,7 +28,7 @@ class ScrapDimagazBC(models.Model):
     bl_number = models.CharField(max_length=50, null=True, blank=True)
     solde = models.FloatField(null=True, blank=True)
     non_conforme = models.BooleanField(default=False)
-    version = models.BooleanField(default=False)
+    version = models.CharField(max_length=50, blank=True, null=True)
     prefix = models.BooleanField(default=False)
     source = models.CharField(max_length=50, null=True, blank=True)
     product_type = models.CharField(max_length=50, null=True, blank=True)
@@ -77,6 +77,11 @@ class ScrapProduct(models.Model):
 class ScrapFournisseur(models.Model):
     odoo_id = models.IntegerField(unique=True)
     name = models.CharField(max_length=255)
+    adresse = models.CharField(max_length=255, null=True, blank=True)
+    display_name = models.CharField(max_length=255, null=True, blank=True)
+    email = models.CharField(max_length=255, null=True, blank=True)
+    tel = models.CharField(max_length=50, null=True, blank=True)
+    ville = models.CharField(max_length=100, null=True, blank=True)
     centre_ids = models.JSONField(null=True, blank=True)  # liste d'IDs Odoo des centres
     create_date = models.DateTimeField(null=True, blank=True)
     write_date = models.DateTimeField(null=True, blank=True)

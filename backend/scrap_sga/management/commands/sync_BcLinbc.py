@@ -163,7 +163,7 @@ class Command(BaseCommand):
                             'bl_number': bc.get('bl_number', ''),
                             'solde': round(float(bc.get('solde', 0.0)), 2) if bc.get('solde') is not None else None,
                             'non_conforme': to_bool(bc.get('non_conforme')),
-                            'version': to_bool(bc.get('version')),
+                            'version': bc.get('version', ''),
                             'prefix': to_bool(bc.get('prefix')),
                             'source': bc.get('source', ''),
                             'product_type': bc.get('product_type', ''),
