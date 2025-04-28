@@ -143,3 +143,24 @@ class ScrappingConsole(models.Model):
 
     def __str__(self):
         return f"Scrap {self.scrap_type} ({self.status})"
+
+class SyncState(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    last_sync = models.DateTimeField(null=True, blank=True)
+    is_syncing = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.name} (last_sync: {self.last_sync}, syncing: {self.is_syncing})"
+
+class SyncLog(models.Model):
+    sync_type = models.CharField(max_length=100)
+    start_time = models.DateTimeField(auto_now_add=True)
+    end_time = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=[('success', 'Succès'), ('error', 'Erreur'), ('partial', 'Partiel')])
+    details = models.TextField(null=True, blank=True)
+    error_message = models.TextField(null=True, blank=True)
+    bc_synced = models.IntegerField(null=True, blank=True)
+    line_synced = models.IntegerField(null=True, blank=True)
+
+    def __str__(self):
+        return f"[{self.sync_type}] {self.start_time} - {self.status}"
