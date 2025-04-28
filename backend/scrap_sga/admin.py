@@ -23,6 +23,14 @@ class ScrapDimagazBCAdmin(admin.ModelAdmin):
     search_fields = ('odoo_id', 'name', 'fullname', 'display_name')
     list_filter = ('fournisseur', 'fournisseur_centre', 'depositaire', 'done', 'sap', 'confirmed', 'state', 'terminated', 'non_conforme', 'product_type')
 
+    def lignes_bc_link(self, obj):
+        from django.urls import reverse
+        url = reverse('admin:scrap_sga_scrapdimagazbcline_changelist') + f'?bc__id__exact={obj.id}'
+        return format_html('<a href="{}">Voir les lignes BC associées</a>', url)
+    lignes_bc_link.short_description = "Lignes BC associées"
+
+    readonly_fields = ('lignes_bc_link', 'odoo_id', 'name', 'fullname', 'bc_date', 'bl_date', 'fournisseur', 'fournisseur_centre', 'depositaire', 'montant_paye', 'done', 'sap', 'confirmed', 'remise', 'tva', 'ht', 'ttc', 'bc_type', 'state', 'terminated', 'verify_state', 'qty_retenue', 'paye_par', 'bl_number', 'solde', 'non_conforme', 'version', 'prefix', 'source', 'product_type', 'display_name', 'create_date', 'write_date')
+
 @admin.register(ScrapDimagazBCLine)
 class ScrapDimagazBCLineAdmin(admin.ModelAdmin):
     list_display = ('odoo_id', 'bc', 'product', 'product_name', 'qty', 'bc_date')
@@ -33,6 +41,14 @@ class ScrapDimagazBCLineAdmin(admin.ModelAdmin):
 class ScrapFournisseurAdmin(admin.ModelAdmin):
     list_display = ('odoo_id', 'name', 'create_date', 'write_date')
     search_fields = ('odoo_id', 'name')
+
+    def centres_associes_link(self, obj):
+        from django.urls import reverse
+        url = reverse('admin:scrap_sga_scrapfournisseurcentre_changelist') + f'?fournisseur__id__exact={obj.id}'
+        return format_html('<a href="{}">Voir les centres associés</a>', url)
+    centres_associes_link.short_description = "Centres associés"
+
+    readonly_fields = ('odoo_id', 'name', 'create_date', 'write_date', 'centres_associes_link')
 
 @admin.register(ScrapFournisseurCentre)
 class ScrapFournisseurCentreAdmin(admin.ModelAdmin):
