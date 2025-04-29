@@ -115,6 +115,24 @@ class ClientSerializer(serializers.ModelSerializer):
     region = serializers.CharField(read_only=True)
     cree_par_user = serializers.UUIDField(source='cree_par_user_id', read_only=True)
     modifie_par_user = serializers.UUIDField(source='modifie_par_user_id', read_only=True)
+    last_bc_info = serializers.SerializerMethodField()
+
+    def get_last_bc_info(self, obj):
+        # Règle métier : dimagaz.user.sapid = core.client.sap_id ET dimagaz.bc.depositaire=dimagaz.user.odoo_id
+        from scrap_sga.models import ScrapUser, ScrapDimagazBC
+        sapid = getattr(obj, 'sap_id', None)
+        if not sapid:
+            return None
+        user = ScrapUser.objects.filter(sap_id=sapid).first()
+        if not user:
+            return None
+        last_bc = ScrapDimagazBC.objects.filter(depositaire_id=user.id).order_by('-create_date').first()
+        if not last_bc:
+            return None
+        return {
+            'name': last_bc.name,
+            'create_date': last_bc.create_date
+        }
 
     def update(self, instance, validated_data):
         import logging

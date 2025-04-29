@@ -6,7 +6,7 @@ import { api } from "@/utils/api";
 import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
 import Chip from "@mui/material/Chip";
-import Tooltip from "@mui/material/Tooltip";
+import Tooltip, { TooltipProps } from "@mui/material/Tooltip";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import CallIcon from "@mui/icons-material/Call";
 import IconButton from "@mui/material/IconButton";
@@ -59,6 +59,10 @@ interface Client {
   ville: string | null;
   canal_contact: string | null;
   relance_planifiee: boolean;
+  last_bc_info?: {
+    name: string;
+    create_date: string;
+  };
 }
 
 interface VilleType {
@@ -385,11 +389,27 @@ export default function DashboardPage() {
           ? <TextField size="small" select value={inlineEditData.statut_general || ''} onChange={e => setInlineEditData(d => ({ ...d, statut_general: e.target.value }))}>
               {statutChoices.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
             </TextField>
-          : <Chip
-              label={dashboardSettings.statut_general.find(opt => opt.value === client.statut_general)?.label || client.statut_general}
-              size="small"
-              color={statutColor(client.statut_general)}
-            />;
+          : (
+            <Tooltip
+              {...largeTooltipProps}
+              title={
+                <span>
+                  <b>Dernier BC créé :</b> {client.last_bc_info && client.last_bc_info.name ? client.last_bc_info.name : <i>Aucun BC trouvé</i>}<br />
+                  <b>Date création :</b> {client.last_bc_info && client.last_bc_info.create_date ? new Date(client.last_bc_info.create_date).toLocaleString() : <i>-</i>}
+                </span>
+              }
+              placement="top"
+            >
+              <span>
+                <Chip
+                  label={dashboardSettings.statut_general.find(opt => opt.value === client.statut_general)?.label || client.statut_general}
+                  size="small"
+                  color={statutColor(client.statut_general)}
+                  style={{ cursor: 'pointer' }}
+                />
+              </span>
+            </Tooltip>
+          );
       case 'canal_contact':
         // Affichage icône combiné téléphone ou WhatsApp selon la valeur
         if (client.canal_contact === 'telephone') {
