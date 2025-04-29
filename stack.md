@@ -7,11 +7,12 @@ je veux créer une application web moderne et jolie, avec :
 |--------------------|-------------------------------|--------------------------------------------|
 | **Frontend**       | Next.js 15.3.1                | React 19, TypeScript, MUI 7.0.2, TailwindCSS 4, Axios 1.8.4, Chart.js 4.4.9, jwt-decode 4.0.0 |
 | **Backend**        | Django >=4.2 (5.2 utilisé)     | djangorestframework, simplejwt, django-filter, decouple, dj-database-url, pandas, Pillow, openpyxl, cors-headers |
+| **Tâches asynchrones** | Celery 5.x, Redis 7.x (broker & backend) | celery[redis], lancement auto via Docker, tâches planifiées (beat), gestion des jobs périodiques |
 | **Base de données**| PostgreSQL                     | psycopg2-binary                            |
 | **Auth**           | JWT (djangorestframework-simplejwt) | Stockage token côté client (localStorage/cookie), Intercepteur axios |
 | **Historique**     | ORM Django (AuditLog, migrations auto) |                                        |
-| **UI Design**      | Material UI (MUI)              | emotion/react, emotion/styled              |
-| **API**            | REST (DRF)                     | Pagination, filtres, CORS                  |
+| **UI Design**      | Material UI (MUI), Tooltip avancés, Chip, Icons | emotion/react, emotion/styled, largeTooltipProps custom |
+| **API**            | REST (DRF)                     | Pagination, filtres, CORS, champs calculés (last_bc_info), logique métier avancée dans serializers |
 | **DevOps**         | Docker, docker-compose         |                                            |
 | **Sécurité**       | Password validation Django, JWT, CORS, .env non versionné |
 

@@ -6,6 +6,46 @@ from django.dispatch import receiver
 
 # Create your models here.
 
+# --- Suppression des modèles SyncState et SyncLog car ils sont définis dans l'app scrap_sga ---
+# class SyncState(models.Model):
+#     """
+#     Stocke l'état de synchronisation incrémentale pour chaque ressource (ex: 'bclinbc').
+#     """
+#     CLE_CHOICES = [
+#         ('bclinbc', 'BC & Lignes BC'),
+#         # Ajouter d'autres clés si besoin
+#     ]
+#     cle = models.CharField(max_length=50, unique=True, choices=CLE_CHOICES)
+#     last_sync = models.DateTimeField(null=True, blank=True)
+#     is_syncing = models.BooleanField(default=False)
+#     updated_at = models.DateTimeField(auto_now=True)
+
+#     def __str__(self):
+#         return f"{self.cle} (last_sync: {self.last_sync})"
+
+#     class Meta:
+#         db_table = 'scrap_sga_syncstate'
+
+# class SyncLog(models.Model):
+#     """
+#     Logge chaque exécution de synchronisation (début, fin, statut, erreurs, volumétrie).
+#     """
+#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+#     cle = models.CharField(max_length=50)  # Ex: 'bclinbc'
+#     date_debut = models.DateTimeField(auto_now_add=True)
+#     date_fin = models.DateTimeField(null=True, blank=True)
+#     status = models.CharField(max_length=20, default='pending')  # success, error, running
+#     nb_bc = models.PositiveIntegerField(default=0)
+#     nb_lignes = models.PositiveIntegerField(default=0)
+#     erreurs = models.TextField(blank=True, null=True)
+#     details = models.JSONField(blank=True, null=True)
+
+#     def __str__(self):
+#         return f"{self.cle} | {self.date_debut:%Y-%m-%d %H:%M} | {self.status}"
+
+#     class Meta:
+#         db_table = 'scrap_sga_synclog'
+
 class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)

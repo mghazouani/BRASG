@@ -18,10 +18,22 @@ class ScrapDimagazBCAdmin(admin.ModelAdmin):
         'montant_paye', 'done', 'sap', 'confirmed', 'remise', 'tva', 'ht', 'ttc',
         'bc_type', 'state', 'terminated', 'verify_state', 'qty_retenue', 'paye_par',
         'bl_number', 'solde', 'non_conforme', 'version', 'prefix', 'source', 'product_type',
-        'display_name', 'create_date', 'write_date'
+        'display_name', 'create_date', 'write_date', 'lignes_bc_link'
     )
-    search_fields = ('odoo_id', 'name', 'fullname', 'display_name')
-    list_filter = ('fournisseur', 'fournisseur_centre', 'depositaire', 'done', 'sap', 'confirmed', 'state', 'terminated', 'non_conforme', 'product_type')
+    search_fields = ('odoo_id', 'name', 'fullname', 'display_name', 'bl_number', 'state', 'product_type')
+    list_filter = (
+        'fournisseur', 'fournisseur_centre', 'depositaire',
+        'done', 'sap', 'confirmed', 'state', 'terminated', 'non_conforme',
+        'product_type', 'bc_type', 'prefix', 'source',
+        ('bc_date', admin.DateFieldListFilter),
+        ('bl_date', admin.DateFieldListFilter),
+        ('create_date', admin.DateFieldListFilter),
+        ('write_date', admin.DateFieldListFilter),
+        ('montant_paye', admin.AllValuesFieldListFilter),
+        ('ttc', admin.AllValuesFieldListFilter),
+    )
+    date_hierarchy = 'bc_date'
+    readonly_fields = ('lignes_bc_link', 'odoo_id', 'name', 'fullname', 'bc_date', 'bl_date', 'fournisseur', 'fournisseur_centre', 'depositaire', 'montant_paye', 'done', 'sap', 'confirmed', 'remise', 'tva', 'ht', 'ttc', 'bc_type', 'state', 'terminated', 'verify_state', 'qty_retenue', 'paye_par', 'bl_number', 'solde', 'non_conforme', 'version', 'prefix', 'source', 'product_type', 'display_name', 'create_date', 'write_date')
 
     def lignes_bc_link(self, obj):
         from django.urls import reverse
@@ -29,13 +41,19 @@ class ScrapDimagazBCAdmin(admin.ModelAdmin):
         return format_html('<a href="{}">Voir les lignes BC associées</a>', url)
     lignes_bc_link.short_description = "Lignes BC associées"
 
-    readonly_fields = ('lignes_bc_link', 'odoo_id', 'name', 'fullname', 'bc_date', 'bl_date', 'fournisseur', 'fournisseur_centre', 'depositaire', 'montant_paye', 'done', 'sap', 'confirmed', 'remise', 'tva', 'ht', 'ttc', 'bc_type', 'state', 'terminated', 'verify_state', 'qty_retenue', 'paye_par', 'bl_number', 'solde', 'non_conforme', 'version', 'prefix', 'source', 'product_type', 'display_name', 'create_date', 'write_date')
-
 @admin.register(ScrapDimagazBCLine)
 class ScrapDimagazBCLineAdmin(admin.ModelAdmin):
-    list_display = ('odoo_id', 'bc', 'product', 'product_name', 'qty', 'bc_date')
-    search_fields = ('odoo_id', 'product_name', 'product__name')
-    list_filter = ('product__name',)
+    list_display = ('odoo_id', 'bc', 'product', 'product_name', 'qty', 'qty_vide', 'qty_retenue', 'qty_defect', 'prix', 'subtotal', 'bc_date', 'create_date', 'write_date')
+    search_fields = ('odoo_id', 'product_name', 'product__name', 'bc__name')
+    list_filter = (
+        'product', 'bc',
+        ('bc_date', admin.DateFieldListFilter),
+        ('create_date', admin.DateFieldListFilter),
+        ('write_date', admin.DateFieldListFilter),
+        ('qty', admin.AllValuesFieldListFilter),
+        ('prix', admin.AllValuesFieldListFilter),
+    )
+    date_hierarchy = 'bc_date'
 
 @admin.register(ScrapFournisseur)
 class ScrapFournisseurAdmin(admin.ModelAdmin):

@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import User, Client, AuditLog, ImportFichier, DashboardConfig, Ville, NotificationClient
+from scrap_sga.models import SyncState, SyncLog
 from django import forms
 from django.urls import path
 from django.shortcuts import redirect
@@ -215,3 +216,42 @@ class NotificationClientAdmin(admin.ModelAdmin):
     list_filter = ('statut', 'canal', 'date_notification')
     search_fields = ('client__nom_client', 'client__sap_id', 'utilisateur__username')
     readonly_fields = ('client', 'utilisateur', 'date_notification', 'statut', 'canal')
+
+@admin.register(SyncState)
+class SyncStateAdmin(admin.ModelAdmin):
+    list_display = ('name', 'last_sync', 'is_syncing')
+    readonly_fields = ('name', 'last_sync', 'is_syncing')
+    search_fields = ('name',)
+    list_filter = (
+        'is_syncing',
+        ('last_sync', admin.DateFieldListFilter),
+    )
+    date_hierarchy = 'last_sync'
+
+    def has_add_permission(self, request):
+        return False
+    def has_change_permission(self, request, obj=None):
+        return False
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+@admin.register(SyncLog)
+class SyncLogAdmin(admin.ModelAdmin):
+    list_display = ('sync_type', 'start_time', 'end_time', 'status', 'bc_synced', 'line_synced')
+    readonly_fields = ('sync_type', 'start_time', 'end_time', 'status', 'bc_synced', 'line_synced', 'details', 'error_message')
+    search_fields = ('sync_type', 'status', 'details', 'error_message')
+    list_filter = (
+        'sync_type',
+        'status',
+        ('start_time', admin.DateFieldListFilter),
+        ('end_time', admin.DateFieldListFilter),
+        ('bc_synced', admin.AllValuesFieldListFilter),
+    )
+    date_hierarchy = 'start_time'
+
+    def has_add_permission(self, request):
+        return False
+    def has_change_permission(self, request, obj=None):
+        return False
+    def has_delete_permission(self, request, obj=None):
+        return False
