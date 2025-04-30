@@ -22,7 +22,7 @@ def parse_odoo_datetime(dt_str):
     if not dt_str:
         return None
     dt = datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
-    return timezone.make_aware(dt, timezone.utc)
+    return timezone.make_aware(dt, datetime.timezone.utc)
 
 def to_bool(val):
     if isinstance(val, bool):

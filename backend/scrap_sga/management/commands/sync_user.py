@@ -8,6 +8,7 @@ from scrap_sga.models import ScrapUser
 from scrap_sga.utils_audit import log_audit, compute_diff, log_delete
 from datetime import datetime
 from django.utils import timezone
+import datetime
 from django.forms.models import model_to_dict
 
 ODOO_URL = os.environ.get('ODOO_URL')
@@ -18,8 +19,8 @@ ODOO_PASSWORD = os.environ.get('ODOO_PASSWORD')
 def parse_odoo_datetime(dt_str):
     if not dt_str:
         return None
-    dt = datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
-    return timezone.make_aware(dt, timezone.utc)
+    dt = datetime.datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
+    return timezone.make_aware(dt, datetime.timezone.utc)
 
 class Command(BaseCommand):
     help = 'Synchronise les utilisateurs (dimagaz.user) depuis Odoo'

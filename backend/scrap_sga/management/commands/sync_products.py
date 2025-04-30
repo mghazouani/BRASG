@@ -17,8 +17,8 @@ ODOO_PASSWORD = os.environ.get('ODOO_PASSWORD')
 def parse_odoo_datetime(dt_str):
     if not dt_str:
         return None
-    dt = datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
-    return timezone.make_aware(dt, timezone.utc)
+    dt = datetime.datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
+    return timezone.make_aware(dt, datetime.timezone.utc)
 
 class Command(BaseCommand):
     help = 'Synchronise les produits Odoo (dimagaz.product) vers ScrapProduct.'

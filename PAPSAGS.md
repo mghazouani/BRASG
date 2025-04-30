@@ -38,7 +38,7 @@ Récupérer en lecture seule des champs bien précis dans Odoo et les stocker da
      - Nettoyage automatique des doublons éventuels (script de contrôle)
      - Audit log de chaque import/modification
 5. Mise en place de l’audit log pour chaque import
-6. Planification de la tâche automatique (toutes les 5 minutes)
+6. Planification de la tâche automatique (toutes les 1 minutes)
 7. Exposition des données via API DRF pour le frontend
 8. Mécanisme de relance/résynchronisation en cas d’échec
 

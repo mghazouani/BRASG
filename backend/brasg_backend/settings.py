@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'villes',
     'corsheaders',
     'scrap_sga',
+    'general_config',
     'celery',  # Add this line
 ]
 

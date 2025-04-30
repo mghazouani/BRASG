@@ -4,27 +4,27 @@ Ce guide détaille l'installation de toutes les dépendances nécessaires, la co
 
 ---
 
+## Étape préliminaire : Mise à jour du système
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
 ## 1. Prérequis système
 - Ubuntu Server/Desktop 24.04 LTS fraîchement installé
 - Accès sudo/root
 - Accès internet
 
-## 2. Mise à jour du système
+## 2. Installation des dépendances système
 ```bash
-sudo apt update && sudo apt upgrade -y
+sudo apt install -y python3 python3-pip python3-venv build-essential libpq-dev git ufw
 ```
 
-## 3. Installation des dépendances principales
+## 3. Installation et configuration de PostgreSQL
 ```bash
-sudo apt install -y git python3 python3-venv python3-pip build-essential libpq-dev
+sudo apt install -y postgresql postgresql-contrib
 ```
 
-## 4. Installation et configuration de PostgreSQL
-```bash
-sudo apt install -y postgresql-17 postgresql-contrib
-```
-
-### 4.1 Création de l'utilisateur et de la base de données
+### 3.1 Création de l'utilisateur et de la base de données
 Remplacez `brasg_user`, `brasg_db` et `brasg_pass` par les valeurs souhaitées si besoin.
 
 ```bash
@@ -38,18 +38,23 @@ GRANT ALL PRIVILEGES ON DATABASE brasg_db TO brasg_user;
 \q
 ```
 
-### 4.2 Modifier l'accès local (optionnel, pour accès réseau)
+### 3.2 Modifier l'accès local (optionnel, pour accès réseau)
 ```bash
-sudo nano /etc/postgresql/17/main/pg_hba.conf
+sudo nano /etc/postgresql/16/main/pg_hba.conf
 ```
 Remplacez `peer` par `md5` pour la ligne `local` si besoin, puis :
 ```bash
 sudo systemctl restart postgresql
 ```
 
-## 5. Clonage du repository BRASG
+## 4. Installation et configuration de Redis (pour Celery et cache)
+```bash
+sudo apt install -y redis-server
+sudo systemctl enable redis-server
+sudo systemctl start redis-server
+```
 
-**Chemin recommandé :** `/srv/BRASG` (ou autre selon vos standards)
+## 5. Clonage du projet
 ```bash
 sudo mkdir -p /srv && cd /srv
 sudo git clone https://github.com/mghazouani/BRASG.git
@@ -57,85 +62,88 @@ sudo chown -R $USER:$USER BRASG
 cd BRASG
 ```
 
-## 6. Backend Django : installation et configuration
+## 6. Création et activation de l’environnement virtuel Python
 ```bash
 cd backend
 python3 -m venv venv
-cd ..
+source venv/bin/activate
 
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Créez/modifiez le fichier `.env` dans `/srv/BRASG/backend/` :
+## 7. Configuration du pare-feu (si accès distant)
+```bash
+sudo ufw allow 8000
+sudo ufw allow 6379  # Pour Redis si besoin
+```
+
+## 8. Configuration du fichier .env
+Créez/modifiez le fichier `.env` dans `/srv/BRASG/backend/` :
 ```env
 DJANGO_SECRET_KEY=change_me
 DEBUG=True
 ALLOWED_HOSTS=*
 DATABASE_URL=postgres://brasg_user:brasg_pass@localhost:5432/brasg_db
+ODOO_URL=http://188.68.35.228:8069
+ODOO_DB=DIMAGAZ
+ODOO_PASSWORD=mehdi123
+REDIS_URL=redis://localhost:6379/0
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
+EMAIL_HOST=smtp.example.com
+EMAIL_HOST_USER=monuser
+EMAIL_HOST_PASSWORD=motdepasse
 ```
+> **Ne jamais commiter ce fichier `.env` dans le dépôt git.**
 
-### 6.1 Migration et création du superutilisateur
+## 9. Migration et création du superutilisateur
 ```bash
 python manage.py migrate
 python manage.py createsuperuser
 ```
 
-### 6.2 Lancement du backend
+## 10. Collecte des fichiers statiques (pour la production)
+```bash
+python manage.py collectstatic
+```
+
+## 11. Lancement du backend Django
 ```bash
 python manage.py runserver 0.0.0.0:8000
 ```
 
-## 6.bis Installation et configuration de Celery + Redis pour la synchronisation automatique
-
+## 12. Lancement de Celery (dans un autre terminal)
 ```bash
-# Installer Redis (service de messages pour Celery)
-sudo apt install redis-server
-sudo systemctl enable redis-server
-sudo systemctl start redis-server
-
-# Installer Celery et lier à Django (dans le venv Python du backend)
-pip install celery redis
+cd backend
+source venv/bin/activate
+celery -A brasg_backend worker -l info
+celery -A brasg_backend beat -l info
 ```
 
-**Configuration Django**
-- Vérifiez que `celery.py` est bien dans le dossier principal du projet Django (`backend/brasg_backend/`).
-- Ajoutez dans `settings.py` :
-```python
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-CELERY_BEAT_SCHEDULE = {
-    'sync_bc_linbc_every_5min': {
-        'task': 'scrap_sga.tasks.sync_bc_linbc_task',
-        'schedule': 300,  # toutes les 5 minutes
-    },
-}
-```
-- Créez le fichier `tasks.py` dans `scrap_sga` si besoin :
-```python
-from celery import shared_task
-import subprocess
+## 13. Sécurisation Django (en production)
+- Passez `DEBUG=False` dans `.env`.
+- Renseignez les vrais domaines/IP dans `ALLOWED_HOSTS`.
+- Utilisez une clé secrète forte et unique pour `DJANGO_SECRET_KEY`.
 
-@shared_task
-def sync_bc_linbc_task():
-    subprocess.call(['python', 'manage.py', 'sync_BcLinbc'])
-```
+## 14. Vérifications finales
+- Accédez à l’admin Django via `/admin/`.
+- Vérifiez les logs (`backend/logs/`, `systemctl status redis-server`, etc.).
+- Testez la connexion à la base de données et à Redis.
 
-**Lancement des workers Celery**
-Dans deux terminaux :
-```bash
-cd /srv/BRASG/backend
-celery -A brasg_backend worker --loglevel=info
-celery -A brasg_backend beat --loglevel=info
-```
-
-**Vérification**
-- La synchro BC/lines s’exécutera automatiquement toutes les 5 minutes.
-- Les logs apparaîtront dans la console Celery.
+## 15. (Optionnel) Configuration du service (systemd/supervisor) pour Django et Celery
+- Créez des fichiers de service pour automatiser le lancement de Django, Celery worker et beat.
 
 ---
 
-## 7. Frontend React (dashboard)
+**Remarques** :
+- Adaptez les ports, chemins et variables à votre environnement.
+- Pour un déploiement en production, configurez nginx/gunicorn pour servir Django et les fichiers statiques.
+- Pensez à sécuriser les accès SSH et à sauvegarder régulièrement la base de données.
+
+---
+
+## 16. Frontend React (dashboard)
 ```bash
 cd ../frontend/frontend-dashboard
 sudo apt install npm
@@ -167,7 +175,7 @@ npm start
 
 - Accès par défaut au dashboard : http://localhost:3000
 
-## 8. (Optionnel) Reverse proxy avec Nginx
+## 17. (Optionnel) Reverse proxy avec Nginx
 Pour exposer le service sur un domaine, configurer Nginx comme reverse proxy (hors scope de ce guide).
 
 ---

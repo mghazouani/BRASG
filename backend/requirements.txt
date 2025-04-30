@@ -9,3 +9,6 @@ pandas
 openpyxl
 Pillow
 django-cors-headers
+celery
+redis
+python-dotenv
