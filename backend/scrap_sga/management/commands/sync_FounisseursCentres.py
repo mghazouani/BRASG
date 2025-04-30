@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from scrap_sga.models import ScrapFournisseur, ScrapFournisseurCentre
 from scrap_sga.utils_audit import log_audit, compute_diff, log_delete
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
 from django.utils import timezone
 from django.forms.models import model_to_dict
 
@@ -18,8 +18,8 @@ ODOO_PASSWORD = os.environ.get('ODOO_PASSWORD')
 def parse_odoo_datetime(dt_str):
     if not dt_str:
         return None
-    dt = datetime.datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
-    return timezone.make_aware(dt, datetime.timezone.utc)
+    dt = datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
+    return timezone.make_aware(dt, dt_timezone.utc)
 
 class Command(BaseCommand):
     help = 'Synchronise les fournisseurs et centres depuis Odoo (à la demande)'
