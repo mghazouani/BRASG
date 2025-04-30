@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 from scrap_sga.models import ScrapDimagazBC, ScrapDimagazBCLine, ScrapFournisseur, ScrapFournisseurCentre, ScrapUser, ScrapProduct, SyncState, SyncLog
 from django.db import transaction
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
 from django.utils import timezone
 from scrap_sga.utils_audit import log_audit, compute_diff, log_delete
 from django.forms.models import model_to_dict
@@ -22,7 +22,7 @@ def parse_odoo_datetime(dt_str):
     if not dt_str:
         return None
     dt = datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
-    return timezone.make_aware(dt, datetime.timezone.utc)
+    return timezone.make_aware(dt, dt_timezone.utc)
 
 def to_bool(val):
     if isinstance(val, bool):
@@ -83,7 +83,7 @@ class Command(BaseCommand):
             last_sync = syncstate.last_sync
         else:
             # Date très ancienne par défaut
-            last_sync = timezone.datetime(2000, 1, 1, tzinfo=timezone.utc)
+            last_sync = datetime(2000, 1, 1, tzinfo=dt_timezone.utc)
         self.stdout.write(self.style.NOTICE(f"Synchronisation incrémentale depuis {last_sync} (jusqu'à {now_sync})"))
         batch_size = options['batch_size']
         last = options['last']
