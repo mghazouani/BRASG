@@ -75,8 +75,8 @@ class ScrapFournisseurCentreAdmin(admin.ModelAdmin):
 
 @admin.register(ScrapUser)
 class ScrapUserAdmin(admin.ModelAdmin):
-    list_display = ('odoo_id', 'display_name', 'username', 'sap_id', 'create_date', 'write_date')
-    search_fields = ('odoo_id', 'display_name', 'username', 'sap_id')
+    list_display = ('odoo_id', 'display_name', 'username', 'sap_id', 'codeclientSG', 'create_date', 'write_date')
+    search_fields = ('odoo_id', 'display_name', 'username', 'sap_id', 'codeclientSG')
 
 @admin.register(ScrapProduct)
 class ScrapProductAdmin(admin.ModelAdmin):

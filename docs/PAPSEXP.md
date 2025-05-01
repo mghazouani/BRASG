@@ -55,6 +55,14 @@ Créer une fonctionnalité d’export avancé dans l’admin Django pour génér
 - **Commit & push GitHub** :
     - JS et documentation à jour.
 
+## 2025-05-02
+
+- **Champ `client` de SalamGazTabLigne** :
+    - Devient optionnel (`blank=True, null=True`) dans le modèle.
+    - Désormais non éditable dans l’admin (readonly_fields sur inline et admin principal).
+    - Migration Django générée et appliquée.
+    - Commit & push GitHub réalisés.
+
 ---
 
 *Prochaine étape possible : ajout d'autres feedbacks visuels ou automatisation côté serveur si besoin.*

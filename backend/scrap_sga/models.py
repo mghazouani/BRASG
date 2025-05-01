@@ -106,6 +106,7 @@ class ScrapUser(models.Model):
     username = models.CharField(max_length=255)
     password = models.CharField(max_length=255)
     sap_id = models.CharField(max_length=64)
+    codeclientSG = models.CharField(max_length=64, blank=True, null=True, verbose_name="Code client SG")
     create_date = models.DateTimeField(null=True, blank=True)
     write_date = models.DateTimeField(null=True, blank=True)
 
