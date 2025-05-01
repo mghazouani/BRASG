@@ -41,5 +41,5 @@ yarn-error.log*
 next-env.d.ts
 
 # celery
-celerybeat-schedule.dat
+backend/celerybeat-schedule.dat
 

@@ -54,6 +54,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'scrap_sga',
     'general_config',
+    'imports_clients',
+    'export',
     'celery',  # Add this line
 ]
 

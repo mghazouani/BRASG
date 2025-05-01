@@ -11,15 +11,13 @@ ODOO_USER = os.environ.get('ODOO_USER')
 ODOO_PASSWORD = os.environ.get('ODOO_PASSWORD')
 
 class Command(BaseCommand):
-    help = 'Dump un enregistrement de dimagaz.bc (sélectionné par name), ses lignes, le user dépositaire ET les produits en JSON.'
+    help = "Affiche un alimenter.solde par reference_no (Odoo) et l'exporte en JSON."
 
     def add_arguments(self, parser):
-        parser.add_argument('--name', type=str, help='Nom (name) du BC à exporter')
-        parser.add_argument('--product-id', type=int, help='ID Odoo du produit à visualiser (optionnel)')
+        parser.add_argument('--reference_no', type=str, required=True, help="reference_no Odoo de l'alimenter.solde à afficher")
 
     def handle(self, *args, **options):
-        name = options.get('name')
-        product_id = options.get('product_id')
+        reference_no = options.get('reference_no')
         self.stdout.write(self.style.NOTICE('Connexion à Odoo...'))
         common = xmlrpc.client.ServerProxy(f"{ODOO_URL}/xmlrpc/2/common")
         uid = common.authenticate(ODOO_DB, ODOO_USER, ODOO_PASSWORD, {})
@@ -29,51 +27,23 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"Connecté à Odoo UID={uid}"))
         models = xmlrpc.client.ServerProxy(f"{ODOO_URL}/xmlrpc/2/object")
 
-        # Recherche du BC par name
-        if name:
-            bc_ids = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.bc', 'search', [[('name', '=', name)]], {'limit': 1})
-        else:
-            bc_ids = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.bc', 'search', [[]], {'limit': 1})
-        if not bc_ids:
-            self.stdout.write('Aucun BC trouvé.')
+        # --- Récupération d'un alimenter.solde par reference_no ---
+        solde_ids = models.execute_kw(
+            ODOO_DB, uid, ODOO_PASSWORD,
+            'alimenter.solde', 'search', [[('reference_no', '=', reference_no)]], {'limit': 1}
+        )
+        if not solde_ids:
+            self.stdout.write(f'Aucun alimenter.solde trouvé pour reference_no={reference_no}.')
             return
-        bc = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.bc', 'read', [bc_ids])[0]
-
-        # Toutes les lignes liées à ce BC
-        line_ids = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.bc.line', 'search', [[('bc_id', '=', bc['id'])]])
-        lines = []
-        if line_ids:
-            lines = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.bc.line', 'read', [line_ids])
-
-        # User dépositaire (dimagaz.user.id = bc['depositaire'][0])
-        user = None
-        if bc.get('depositaire') and isinstance(bc['depositaire'], list) and bc['depositaire']:
-            user_id = bc['depositaire'][0]
-            user_records = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.user', 'read', [[user_id]])
-            if user_records:
-                user = user_records[0]
-
-        # Produits :
-        products = []
-        if product_id:
-            # Un produit spécifique
-            prod = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.product', 'read', [[product_id]])
-            if prod:
-                products = prod
-        else:
-            # Tous les produits (limite à 10 pour test)
-            product_ids = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.product', 'search', [[]], {'limit': 10})
-            if product_ids:
-                products = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'dimagaz.product', 'read', [product_ids])
-
+        solde_records = models.execute_kw(
+            ODOO_DB, uid, ODOO_PASSWORD,
+            'alimenter.solde', 'read', [solde_ids]
+        )
+        solde = solde_records[0]
+        # Affichage console
+        self.stdout.write(json.dumps(solde, indent=2, ensure_ascii=False))
         # Dump JSON dans un fichier
-        data = {
-            'dimagaz.bc': bc,
-            'dimagaz.bc.line': lines,
-            'dimagaz.user': user,
-            'dimagaz.product': products,
-        }
-        out_path = f"odoo_bc_{name or 'sample'}_products.json"
+        out_path = f"odoo_alimenter_solde_{reference_no}.json"
         with open(out_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+            json.dump(solde, f, indent=2, ensure_ascii=False)
         self.stdout.write(self.style.SUCCESS(f'Données exportées dans {out_path}'))

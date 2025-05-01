@@ -1,0 +1,23 @@
+.inline-group .tabular td, .inline-group .tabular th {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+    font-size: 12px;
+    padding: 2px 4px;
+}
+.inline-group .tabular td input[type="text"],
+.inline-group .tabular td input[type="number"] {
+    width: 70px;
+    font-size: 12px;
+    padding: 1px 2px;
+}
+.inline-group .tabular td select {
+    max-width: 90px;
+    font-size: 12px;
+}
+.inline-group .tabular td textarea {
+    width: 120px;
+    height: 18px;
+    font-size: 12px;
+}

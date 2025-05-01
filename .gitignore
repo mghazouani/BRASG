@@ -36,3 +36,6 @@ Thumbs.db
 *.bak
 *.swp
 *~
+
+# celery
+backend/celerybeat-schedule.dat

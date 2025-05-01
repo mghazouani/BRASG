@@ -85,9 +85,9 @@ DJANGO_SECRET_KEY=change_me
 DEBUG=True
 ALLOWED_HOSTS=*
 DATABASE_URL=postgres://brasg_user:brasg_pass@localhost:5432/brasg_db
-ODOO_PASSWORD=mehdi123
 ODOO_URL=http://188.68.35.228:8069
 ODOO_DB=DIMAGAZ
+ODOO_PASSWORD=mehdi123
 ODOO_USER=mehdi.ghazouani@sonomac.ma
 REDIS_URL=redis://localhost:6379/0
 CELERY_BROKER_URL=redis://localhost:6379/0
@@ -114,7 +114,7 @@ python manage.py collectstatic
 python manage.py runserver 0.0.0.0:8000
 ```
 
-## 12. Lancement de Celery (dans un autre terminal)
+## 12. Lancement de Celery (!!!!!!!######dans un autre terminal#####!!!!!!!!)
 ```bash
 cd backend
 source venv/bin/activate
@@ -151,7 +151,7 @@ sudo apt install npm
 npm install
 
 # (IMPORTANT) Créez ou éditez le fichier .env.local pour paramétrer l'URL de l'API backend :
-# /srv/BRASG/frontend/frontend-dashboard/src/app
+# /srv/BRASG/frontend/frontend-dashboard/src/utils
 
 echo "NEXT_PUBLIC_API_URL=http://<adresse-backend>:8000/api/" > .env.local
 
