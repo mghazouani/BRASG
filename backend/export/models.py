@@ -19,7 +19,7 @@ class SalamGazTab(models.Model):
 
 class SalamGazTabLigne(models.Model):
     export = models.ForeignKey(SalamGazTab, on_delete=models.CASCADE, related_name="lignes")
-    client = models.CharField(max_length=100, verbose_name="Client")
+    client = models.CharField(max_length=100, verbose_name="Client", blank=True, null=True)
     depositaire = models.CharField(max_length=100, verbose_name="Dépositaire")
     marque_bouteille = models.CharField(max_length=100, verbose_name="Marque Bouteille")
     qte_bd_3kg = models.PositiveIntegerField(default=0, verbose_name="Qté Bd 3KG")

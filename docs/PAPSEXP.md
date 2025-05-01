@@ -42,5 +42,21 @@ Créer une fonctionnalité d’export avancé dans l’admin Django pour génér
 - [EN COURS] Implémenter l’export Excel/CSV
 - [À FAIRE] Tests et validation métier
 
+## 2025-05-01
+
+- **Amélioration UX Admin Inline Export** :
+    - Calcul dynamique de l'écart dans l'inline admin :
+        - L'écart est désormais recalculé instantanément à la saisie de `mt_vers_virt`.
+        - Affichage couleur : **rouge** si négatif, **vert** si positif, **noir** si zéro.
+        - Correction du ciblage DOM pour compatibilité Django admin (lecture de mt_bl dans le `<p>` readonly, écoute sur l'input mt_vers_virt).
+        - Code JS ultra-robuste, compatible avec tous les ordres de chargement Django.
+    - Amélioration de la lisibilité et de la fiabilité pour les agents.
+
+- **Commit & push GitHub** :
+    - JS et documentation à jour.
+
 ---
+
+*Prochaine étape possible : ajout d'autres feedbacks visuels ou automatisation côté serveur si besoin.*
+
 *Document mis à jour automatiquement à chaque étape réalisée.*

@@ -45,7 +45,7 @@ class SalamGazTabLigneInline(admin.TabularInline):
         "client", "depositaire", "marque_bouteille", "qte_bd_3kg", "qte_bd_6kg", "qte_bd_12kg",
         "tonnage", "societe", "centre_emplisseur", "mt_bl", "mt_vers_virt", "ecart_js", "bcs_sources_display", "observation"
     )
-    readonly_fields = ("tonnage", "ecart_js", "bcs_sources_display", "mt_bl")
+    readonly_fields = ("client", "tonnage", "ecart_js", "bcs_sources_display", "mt_bl")
 
     def bcs_sources_display(self, obj):
         bcs = obj.source_bcs.all()
@@ -160,7 +160,7 @@ class SalamGazTabLigneAdmin(admin.ModelAdmin):
     search_fields = ("client", "depositaire", "marque_bouteille", "societe", "centre_emplisseur")
     list_filter = ("export",)
     filter_horizontal = ("source_bcs",)
-    readonly_fields = ("tonnage", "ecart_colored")
+    readonly_fields = ("client", "tonnage", "ecart_colored")
 
     def ecart_colored(self, obj):
         ecart = obj.ecart
