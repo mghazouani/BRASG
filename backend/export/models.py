@@ -20,7 +20,7 @@ class SalamGazTab(models.Model):
 class SalamGazTabLigne(models.Model):
     export = models.ForeignKey(SalamGazTab, on_delete=models.CASCADE, related_name="lignes")
     client = models.CharField(max_length=100, verbose_name="Client", blank=True, null=True)
-    depositaire = models.CharField(max_length=100, verbose_name="Dépositaire")
+    depositaire = models.ForeignKey('scrap_sga.ScrapUser', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Dépositaire")
     marque_bouteille = models.CharField(max_length=100, verbose_name="Marque Bouteille")
     qte_bd_3kg = models.PositiveIntegerField(default=0, verbose_name="Qté Bd 3KG")
     qte_bd_6kg = models.PositiveIntegerField(default=0, verbose_name="Qté Bd 6KG")
@@ -31,6 +31,9 @@ class SalamGazTabLigne(models.Model):
     mt_bl = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="MT BL")
     mt_vers_virt = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="MT VERS/VIRT")
     ecart = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Ecart")
+    prix_3kg = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Prix 3KG", blank=True, null=True)
+    prix_6kg = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Prix 6KG", blank=True, null=True)
+    prix_12kg = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Prix 12KG", blank=True, null=True)
     observation = models.TextField(blank=True, verbose_name="Observation")
     source_bcs = models.ManyToManyField(
         'scrap_sga.ScrapDimagazBC',

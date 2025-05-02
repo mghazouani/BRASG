@@ -165,3 +165,25 @@ class SyncLog(models.Model):
 
     def __str__(self):
         return f"[{self.sync_type}] {self.start_time} - {self.status}"
+
+class AlimentationSolde(models.Model):
+    odoo_id = models.IntegerField(unique=True)  # id Odoo
+    client_odoo_id = models.IntegerField()
+    client_nom = models.CharField(max_length=128)
+    solde = models.FloatField()
+    state = models.CharField(max_length=32)
+    date_done = models.DateTimeField(null=True, blank=True)
+    comment = models.TextField(null=True, blank=True)
+    avoir = models.CharField(max_length=32, null=True, blank=True)
+    reference_no = models.CharField(max_length=32, unique=True)
+    date_creation = models.DateTimeField(null=True, blank=True)
+    date_refus = models.DateTimeField(null=True, blank=True)
+    refus_raisons = models.TextField(null=True, blank=True)
+    source = models.CharField(max_length=32)
+    created_by = models.CharField(max_length=128, null=True, blank=True)
+    display_name = models.CharField(max_length=128)
+    create_date = models.DateTimeField(null=True, blank=True)
+    write_date = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.reference_no} - {self.client_nom} - {self.solde} MAD"

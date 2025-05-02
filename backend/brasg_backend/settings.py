@@ -174,8 +174,8 @@ CELERY_TIMEZONE = 'Europe/Paris'
 
 from celery.schedules import crontab
 CELERY_BEAT_SCHEDULE = {
-    'sync_bc_linbc_every_1min': {
-        'task': 'scrap_sga.tasks.sync_bc_linbc_task',
+    'sync_bc_and_alimentation_every_1min': {
+        'task': 'scrap_sga.tasks.sync_bc_and_alimentation_task',
         'schedule': 60,  # toutes les 1 minute
     },
 }

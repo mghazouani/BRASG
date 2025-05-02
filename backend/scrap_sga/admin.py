@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ScrapDimagazBC, ScrapDimagazBCLine, ScrapFournisseur, ScrapFournisseurCentre, ScrapUser, ScrapProduct, AuditLog, ScrappingConsole
+from .models import ScrapDimagazBC, ScrapDimagazBCLine, ScrapFournisseur, ScrapFournisseurCentre, ScrapUser, ScrapProduct, AuditLog, ScrappingConsole, AlimentationSolde
 from django.utils.html import format_html
 from django.urls import path
 from django.shortcuts import redirect
@@ -95,6 +95,21 @@ class AuditLogAdmin(admin.ModelAdmin):
         import json
         return json.dumps(obj.diff, indent=2, ensure_ascii=False)
     diff_pretty.short_description = 'Diff (JSON)'
+
+@admin.register(AlimentationSolde)
+class AlimentationSoldeAdmin(admin.ModelAdmin):
+    list_display = (
+        'odoo_id', 'reference_no', 'client_odoo_id', 'client_nom', 'solde', 'state',
+        'date_done', 'date_creation', 'date_refus', 'created_by', 'display_name', 'source',
+        'create_date', 'write_date'
+    )
+    search_fields = ('odoo_id', 'reference_no', 'client_nom', 'client_odoo_id', 'display_name', 'created_by')
+    list_filter = ('state', 'source', 'created_by', ('date_done', admin.DateFieldListFilter), ('create_date', admin.DateFieldListFilter))
+    readonly_fields = [
+        'odoo_id', 'reference_no', 'client_odoo_id', 'client_nom', 'solde', 'state',
+        'date_done', 'date_creation', 'date_refus', 'created_by', 'display_name', 'source',
+        'create_date', 'write_date', 'comment', 'avoir', 'refus_raisons'
+    ]
 
 class ScrappingConsoleAdmin(admin.ModelAdmin):
     list_display = ('scrap_type', 'status', 'last_run', 'auto_schedule', 'schedule_cron', 'updated_at', 'run_now_button')
