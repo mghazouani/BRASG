@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ScrapDimagazBC, ScrapDimagazBCLine, ScrapFournisseur, ScrapFournisseurCentre, ScrapUser, ScrapProduct, AuditLog, ScrappingConsole, AlimentationSolde
+from .models import ScrapDimagazBC, ScrapDimagazBCLine, ScrapFournisseur, ScrapFournisseurCentre, ScrapUser, ScrapProduct, AuditLog, ScrappingConsole, AlimentationSolde, SyncState
 from django.utils.html import format_html
 from django.urls import path
 from django.shortcuts import redirect
@@ -111,6 +111,17 @@ class AlimentationSoldeAdmin(admin.ModelAdmin):
         'create_date', 'write_date', 'comment', 'avoir', 'refus_raisons'
     ]
 
+class SyncStateAdmin(admin.ModelAdmin):
+    list_display = ('name', 'last_sync', 'is_syncing')
+    search_fields = ('name',)
+    fields = ('name', 'last_sync', 'is_syncing')
+
+try:
+    admin.site.unregister(SyncState)
+except admin.sites.NotRegistered:
+    pass
+admin.site.register(SyncState, SyncStateAdmin)
+
 class ScrappingConsoleAdmin(admin.ModelAdmin):
     list_display = ('scrap_type', 'status', 'last_run', 'auto_schedule', 'schedule_cron', 'updated_at', 'run_now_button')
     list_filter = ('scrap_type', 'status', 'auto_schedule')
@@ -193,17 +204,27 @@ class ScrappingConsoleAdmin(admin.ModelAdmin):
             'sync_products': 'sync_products',
             'sync_FounisseursCentres': 'sync_FounisseursCentres',
             'sync_BcLinbc': 'sync_BcLinbc',
+            'sync_AlimentationSolde': 'sync_AlimentationSolde',
         }
         cmd = scrap_map.get(obj.scrap_type)
         if not cmd:
-            messages.error(request, "Type de scrap non supporté.")
-            return redirect(request.META.get('HTTP_REFERER'))
-        # Ajout dynamique des paramètres passés au script
-        params = obj.params or {}
+            self.message_user(request, "Type de scrap non supporté.", level=messages.ERROR)
+            return redirect(f'/admin/scrap_sga/scrappingconsole/{pk}/change/')
+        # Commande spécifique pour sync_AlimentationSolde
+        if cmd == 'sync_AlimentationSolde':
+            from scrap_sga.tasks import sync_alimentation_solde_task
+            sync_alimentation_solde_task.delay()
+            obj.status = 'running'
+            obj.result = 'Tâche Celery sync_alimentation_solde_task lancée.'
+            obj.last_run = timezone.now()
+            obj.save()
+            messages.success(request, "Synchronisation AlimentationSolde lancée via Celery.")
+            return redirect(f'/admin/scrap_sga/scrappingconsole/{pk}/change/')
+        # Autres scraps classiques (commande manage.py)
         cmdline = [sys.executable, 'manage.py', cmd]
-        for k, v in params.items():
-            if v not in (None, "", []):
-                arg = f"--{k.replace('_', '-')}"
+        if obj.params:
+            for k, v in obj.params.items():
+                arg = f'--{k}'
                 if isinstance(v, bool):
                     if v:
                         cmdline.append(arg)

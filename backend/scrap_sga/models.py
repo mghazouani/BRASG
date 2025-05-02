@@ -131,6 +131,7 @@ class ScrappingConsole(models.Model):
         ('sync_products', 'sync_products'),
         ('sync_FounisseursCentres', 'sync_FounisseursCentres'),
         ('sync_BcLinbc', 'sync_BcLinbc'),
+        ('sync_AlimentationSolde', 'sync_AlimentationSolde'),  # Ajout pour permettre le lancement depuis la console
     ]
     scrap_type = models.CharField(max_length=40, choices=SCRAP_CHOICES)
     last_run = models.DateTimeField(null=True, blank=True)
