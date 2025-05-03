@@ -9,6 +9,7 @@ from datetime import datetime
 import requests
 import socket
 from django.db import transaction
+import pytz
 
 def parse_odoo_datetime(dt_str):
     if not dt_str or dt_str is False:
@@ -19,6 +20,36 @@ def safe_str(val):
     if val is False or val is None:
         return None
     return str(val)
+
+def send_discord_notification(obj):
+    webhook_url = os.environ.get('DISCORD_WEBHOOK_SOLDE')
+    if not webhook_url:
+        print("Webhook Discord non défini")
+        return
+    try:
+        ODOO_BASE_URL = os.environ.get('ODOO_URL')
+        ODOO_ACTION = os.environ.get('ODOO_ALIM_ACTION', '333')
+        ODOO_MENU_ID = os.environ.get('ODOO_ALIM_MENU_ID', '69')
+        record_url = f"{ODOO_BASE_URL}/web#id={obj.odoo_id}&action={ODOO_ACTION}&model=alimenter.solde&view_type=form&cids=1&menu_id={ODOO_MENU_ID}"
+
+        maroc_tz = pytz.timezone('Africa/Casablanca')
+        # Si la date n'est pas aware, la rendre UTC avant conversion
+        create_date = obj.create_date
+        if create_date.tzinfo is None or create_date.tzinfo.utcoffset(create_date) is None:
+            create_date = pytz.utc.localize(create_date)
+        date_maroc = create_date.astimezone(maroc_tz)
+        date_str = date_maroc.strftime('%d-%m-%Y %H:%M')
+
+        message = (
+            "💸 **Nouvelle alimentation détectée !**\n\n"
+            f"> **Dépositaire** : `{obj.display_name}`\n"
+            f"> **N° Alimentation** : `{obj.reference_no}`\n"
+            f"> **Date Création** : `{date_str}`\n"
+            f"> [🔗 Voir dans ASG]({record_url}) _(Connexion ASG requise)_"
+        )
+        requests.post(webhook_url, json={'content': message})
+    except Exception as e:
+        print(f"Erreur Discord : {e}")
 
 ODOO_URL = os.environ.get('ODOO_URL')
 ODOO_DB = os.environ.get('ODOO_DB')
@@ -59,6 +90,7 @@ class Command(BaseCommand):
                 'alimenter.solde', 'search', [domain]
             )
             self.stdout.write(f"{len(solde_ids)} alimentations à traiter depuis Odoo.")
+
             new_count = 0
             skipped = 0
             for batch_start in range(0, len(solde_ids), 100):
@@ -102,19 +134,7 @@ class Command(BaseCommand):
                         self.stdout.write(self.style.SUCCESS(
                             f"[NOUVEAU] Odoo id={obj.odoo_id} ref={obj.reference_no} client={obj.client_nom} montant={obj.solde}"
                         ))
-                        # Notification Discord
-                        if DISCORD_WEBHOOK:
-                            try:
-                                message = (
-                                    f"💸 Nouvelle alimentation de solde !\n"
-                                    f"Client : {obj.client_nom} (ID: {obj.client_odoo_id})\n"
-                                    f"Montant crédité : {obj.solde} MAD\n"
-                                    f"Date : {obj.date_done or obj.date_creation}\n"
-                                    f"Agent : {obj.created_by or 'N/A'}"
-                                )
-                                requests.post(DISCORD_WEBHOOK, json={'content': message})
-                            except Exception as e:
-                                self.stdout.write(self.style.ERROR(f"[DISCORD FAIL] id={obj.odoo_id} : {e}"))
+                        send_discord_notification(obj)
             sync_log.status = 'success'
             sync_log.details = f"{new_count} nouvelles alimentations importées et notifiées. {skipped} ignorées."
             sync_state.last_sync = timezone.now()

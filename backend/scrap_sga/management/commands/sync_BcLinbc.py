@@ -6,12 +6,13 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 from scrap_sga.models import ScrapDimagazBC, ScrapDimagazBCLine, ScrapFournisseur, ScrapFournisseurCentre, ScrapUser, ScrapProduct, SyncState, SyncLog
 from django.db import transaction
-from datetime import datetime, timezone as dt_timezone
+from datetime import datetime
+import pytz
 from django.utils import timezone
 from scrap_sga.utils_audit import log_audit, compute_diff, log_delete
 from django.forms.models import model_to_dict
-
 import socket
+import requests
 
 ODOO_URL = os.environ.get('ODOO_URL')
 ODOO_DB = os.environ.get('ODOO_DB')
@@ -22,7 +23,7 @@ def parse_odoo_datetime(dt_str):
     if not dt_str:
         return None
     dt = datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
-    return timezone.make_aware(dt, dt_timezone.utc)
+    return timezone.make_aware(dt, timezone.utc)
 
 def to_bool(val):
     if isinstance(val, bool):
@@ -32,6 +33,34 @@ def to_bool(val):
     if isinstance(val, str):
         return val.strip().lower() in ('1', 'true', 'yes', 'y', 'vrai', 'oui', 'on')
     return False
+
+def send_discord_bc_notification(bc_obj):
+    webhook_url = os.environ.get('DISCORD_WEBHOOK_BC')
+    if not webhook_url:
+        print("Webhook Discord BC non défini")
+        return
+    ODOO_BASE_URL = os.environ.get('ODOO_URL')
+    ODOO_BC_ACTION = os.environ.get('ODOO_BC_ACTION', '85')
+    ODOO_MENU_ID = os.environ.get('ODOO_BC_MENU_ID', '69')
+    record_url = f"{ODOO_BASE_URL}/web#id={bc_obj.odoo_id}&action={ODOO_BC_ACTION}&model=dimagaz.bc&view_type=form&cids=1&menu_id={ODOO_MENU_ID}"
+    depositaire = bc_obj.depositaire.nom if bc_obj.depositaire and hasattr(bc_obj.depositaire, 'nom') else str(bc_obj.depositaire) if bc_obj.depositaire else "N/A"
+    create_date = bc_obj.create_date
+    maroc_tz = pytz.timezone('Africa/Casablanca')
+    if create_date.tzinfo is None or create_date.tzinfo.utcoffset(create_date) is None:
+        create_date = pytz.utc.localize(create_date)
+    date_maroc = create_date.astimezone(maroc_tz)
+    date_str = date_maroc.strftime('%d-%m-%Y %H:%M')
+    message = (
+        f"📄 **Nouvelle commande créée !**\n\n"
+        f"> **Dépositaire** : `{depositaire}`\n"
+        f"> **Numéro BC** : `{bc_obj.name}`\n"
+        f"> **Date Création** : `{date_str}`\n"
+        f"> [🔗 Voir dans ASG]({record_url}) _(connexion ASG requise)_"
+    )
+    try:
+        requests.post(webhook_url, json={'content': message})
+    except Exception as e:
+        print(f"Erreur Discord BC : {e}")
 
 class Command(BaseCommand):
     help = 'Synchronise les BC et lignes BC depuis Odoo vers la base locale (anti-doublon, upsert)'
@@ -83,7 +112,7 @@ class Command(BaseCommand):
             last_sync = syncstate.last_sync
         else:
             # Date très ancienne par défaut
-            last_sync = datetime(2000, 1, 1, tzinfo=dt_timezone.utc)
+            last_sync = datetime(2000, 1, 1, tzinfo=pytz.utc)
         self.stdout.write(self.style.NOTICE(f"Synchronisation incrémentale depuis {last_sync} (jusqu'à {now_sync})"))
         batch_size = options['batch_size']
         last = options['last']
@@ -210,6 +239,8 @@ class Command(BaseCommand):
                             )
                             diff = compute_diff(old_obj, bc_obj) if not created else None
                             log_audit(bc_obj, 'created' if created else 'updated', changed_by='sync_BcLinbc', diff=diff, source='sync_script')
+                            if created:
+                                send_discord_bc_notification(bc_obj)
                             # Synchronisation des lignes associées à ce BC
                             line_ids = bc.get('bc_lines', [])
                             if line_ids:
