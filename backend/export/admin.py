@@ -46,13 +46,18 @@ class SalamGazTabLigneForm(forms.ModelForm):
         if 'qte_bd_12kg' in self.fields:
             self.fields['qte_bd_12kg'].label = 'Qté Bt 12kg'
             self.fields['qte_bd_12kg'].initial = 0
-        # S'assurer que les champs prix et mt_bl sont bien éditables
-        for f in ['prix_3kg', 'prix_6kg', 'prix_12kg', 'mt_bl']:
+        # S'assurer que les champs prix sont bien éditables et obligatoires
+        for f in ['prix_3kg', 'prix_6kg', 'prix_12kg']:
             if f in self.fields:
                 self.fields[f].disabled = False
                 self.fields[f].required = True
-                if f.startswith('prix_'):
-                    self.fields[f].initial = 0
+                self.fields[f].initial = 0
+        
+        # Rendre le champ mt_bl éditable mais non obligatoire (calculé automatiquement)
+        if 'mt_bl' in self.fields:
+            self.fields['mt_bl'].disabled = False
+            self.fields['mt_bl'].required = False
+            
         # Change les labels des champs prix en PU xxKG
         if 'prix_3kg' in self.fields:
             self.fields['prix_3kg'].label = 'PU 03kg'
@@ -113,6 +118,22 @@ class SalamGazTabLigneInline(admin.TabularInline):
         "societe", "centre_emplisseur", "mt_bl", "mt_vers_virt", "observation", "tonnage", "ecart_js"
     )
     readonly_fields = ("tonnage", "ecart_js")
+    
+    def get_formset(self, request, obj=None, **kwargs):
+        """Ne renvoie le formset que si l'objet parent existe déjà"""
+        if obj is None:
+            # Si l'objet parent n'existe pas encore (création), retourne un formset vide
+            self.extra = 0
+            self.max_num = 0
+        else:
+            # Si l'objet parent existe (édition), permet l'ajout de lignes
+            self.extra = 1
+            self.max_num = None
+        return super().get_formset(request, obj, **kwargs)
+    
+    def has_add_permission(self, request, obj=None):
+        """N'autorise l'ajout de lignes que si l'objet parent existe déjà"""
+        return obj is not None
 
     def ecart_js(self, obj=None):
         # Affiche la valeur initiale de l'écart, qui sera ensuite mise à jour dynamiquement par le JS
@@ -152,7 +173,7 @@ class SalamGazTabAdmin(admin.ModelAdmin):
     list_filter = ("date_export",)
     inlines = [SalamGazTabLigneInline]
     fields = ("reference", "date_export", "date_debut", "date_fin", "description")
-    readonly_fields = ("date_export", "reference")
+    readonly_fields = ("date_export",)
     
     class Media:
         js = ('admin/js/ecart_live_update.js',)
@@ -160,8 +181,23 @@ class SalamGazTabAdmin(admin.ModelAdmin):
     def get_readonly_fields(self, request, obj=None):
         """Rend les champs date et référence non modifiables lors de l'édition"""
         if obj:  # Si c'est une modification (pas une création)
-            return self.readonly_fields + ("date_debut", "date_fin")
+            return self.readonly_fields + ("date_debut", "date_fin", "reference")
         return self.readonly_fields
+    
+    def get_form(self, request, obj=None, **kwargs):
+        """Pré-remplit le champ date_debut avec la date_fin du dernier tableau enregistré"""
+        form = super().get_form(request, obj, **kwargs)
+        if not obj:  # Seulement lors de la création d'un nouveau tableau
+            try:
+                # Récupère le dernier tableau enregistré, trié par date_export décroissante
+                last_tab = SalamGazTab.objects.order_by('-date_export').first()
+                if last_tab and last_tab.date_fin:
+                    # Utilise la date_fin du dernier tableau comme date_debut par défaut
+                    form.base_fields['date_debut'].initial = last_tab.date_fin
+                    print(f"[EXPORT][DEBUG] Date de début initialisée à {last_tab.date_fin} (date de fin du dernier tableau)")
+            except Exception as e:
+                print(f"[EXPORT][ERROR] Erreur lors de l'initialisation de la date de début: {str(e)}")
+        return form
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)

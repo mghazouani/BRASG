@@ -46,12 +46,11 @@ class SalamGazTabLigne(models.Model):
         # Calcul automatique du tonnage à partir des quantités
         self.tonnage = (self.qte_bd_3kg * 3) + (self.qte_bd_6kg * 6) + (self.qte_bd_12kg * 12)
         
-        # Calcul automatique du montant BL si les prix sont définis
-        if not self.mt_bl or self.mt_bl == 0:
-            prix_3kg = self.prix_3kg or 0
-            prix_6kg = self.prix_6kg or 0
-            prix_12kg = self.prix_12kg or 0
-            self.mt_bl = (self.qte_bd_3kg * prix_3kg) + (self.qte_bd_6kg * prix_6kg) + (self.qte_bd_12kg * prix_12kg)
+        # Calcul automatique du montant BL à partir des quantités et prix
+        prix_3kg = self.prix_3kg or 0
+        prix_6kg = self.prix_6kg or 0
+        prix_12kg = self.prix_12kg or 0
+        self.mt_bl = (self.qte_bd_3kg * prix_3kg) + (self.qte_bd_6kg * prix_6kg) + (self.qte_bd_12kg * prix_12kg)
         
         # Calcul automatique de l'écart à chaque sauvegarde
         self.ecart = (self.mt_vers_virt or 0) - (self.mt_bl or 0)
