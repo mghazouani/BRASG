@@ -250,15 +250,20 @@ class Command(BaseCommand):
                                 for line in line_records:
                                     product_obj = None
                                     product_id = line.get('product', [None])[0]
+                                    product_name = None
+                                    
                                     if product_id:
                                         product_obj = ScrapProduct.objects.filter(odoo_id=product_id).first()
+                                        if product_obj:
+                                            product_name = product_obj.name
+                                    
                                     old_line = ScrapDimagazBCLine.objects.filter(odoo_id=line['id']).first()
                                     obj, created = ScrapDimagazBCLine.objects.update_or_create(
                                         odoo_id=line['id'],
                                         defaults={
                                             'bc': bc_obj,
                                             'product': product_obj,
-                                            # 'product_name' supprimé car non présent dans Odoo, à gérer côté Django si besoin
+                                            'product_name': product_name,  # Ajout du nom du produit depuis l'objet ScrapProduct
                                             'qty': line.get('qty'),
                                             'qty_vide': line.get('qty_vide'),
                                             'qty_retenue': line.get('qty_retenue'),

@@ -26,9 +26,12 @@ class SalamGazTabLigneForm(forms.ModelForm):
         model = SalamGazTabLigne
         fields = "__all__"
         widgets = {
-            'prix_3kg': forms.NumberInput(attrs={'step': '0.01', 'style': 'width: 55px;', 'maxlength': '3', 'max': '999'}),
-            'prix_6kg': forms.NumberInput(attrs={'step': '0.01', 'style': 'width: 55px;', 'maxlength': '3', 'max': '999'}),
-            'prix_12kg': forms.NumberInput(attrs={'step': '0.01', 'style': 'width: 55px;', 'maxlength': '3', 'max': '999'}),
+            'prix_3kg': forms.NumberInput(attrs={'step': '0.01', 'style': 'width: 55px;', 'maxlength': '3', 'max': '999', 'required': 'required'}),
+            'prix_6kg': forms.NumberInput(attrs={'step': '0.01', 'style': 'width: 55px;', 'maxlength': '3', 'max': '999', 'required': 'required'}),
+            'prix_12kg': forms.NumberInput(attrs={'step': '0.01', 'style': 'width: 55px;', 'maxlength': '3', 'max': '999', 'required': 'required'}),
+            'qte_bd_3kg': forms.NumberInput(attrs={'min': '0', 'style': 'width: 55px;', 'required': 'required'}),
+            'qte_bd_6kg': forms.NumberInput(attrs={'min': '0', 'style': 'width: 55px;', 'required': 'required'}),
+            'qte_bd_12kg': forms.NumberInput(attrs={'min': '0', 'style': 'width: 55px;', 'required': 'required'}),
             'mt_bl': forms.NumberInput(attrs={'step': '0.01', 'style': 'width: 100px;'}),
         }
 
@@ -36,15 +39,20 @@ class SalamGazTabLigneForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if 'qte_bd_3kg' in self.fields:
             self.fields['qte_bd_3kg'].label = 'Qté Bt 03kg'
+            self.fields['qte_bd_3kg'].initial = 0
         if 'qte_bd_6kg' in self.fields:
             self.fields['qte_bd_6kg'].label = 'Qté Bt 06kg'
+            self.fields['qte_bd_6kg'].initial = 0
         if 'qte_bd_12kg' in self.fields:
             self.fields['qte_bd_12kg'].label = 'Qté Bt 12kg'
+            self.fields['qte_bd_12kg'].initial = 0
         # S'assurer que les champs prix et mt_bl sont bien éditables
         for f in ['prix_3kg', 'prix_6kg', 'prix_12kg', 'mt_bl']:
             if f in self.fields:
                 self.fields[f].disabled = False
-                self.fields[f].required = False
+                self.fields[f].required = True
+                if f.startswith('prix_'):
+                    self.fields[f].initial = 0
         # Change les labels des champs prix en PU xxKG
         if 'prix_3kg' in self.fields:
             self.fields['prix_3kg'].label = 'PU 03kg'
@@ -161,9 +169,23 @@ class SalamGazTabAdmin(admin.ModelAdmin):
                     depositaire = bc.depositaire
                     societe = getattr(bc, 'fournisseur', None)
                     centre_emplisseur = getattr(bc, 'fournisseur_centre', None)
-                    marque_bouteille = getattr(line.product, 'product_category_name', None)
-                    if not marque_bouteille:
-                        marque_bouteille = 'INCONNU'
+                    
+                    # Déterminer la marque de bouteille (DIMAGAZ ou ZERGAGAZ) à partir du nom du produit
+                    product_brand = None
+                    if line.product_name:
+                        if 'dimagaz' in line.product_name.lower():
+                            product_brand = 'DIMAGAZ'
+                        elif 'zergagaz' in line.product_name.lower():
+                            product_brand = 'ZERGAGAZ'
+                    
+                    # Si on a détecté une marque spécifique, l'utiliser à la place de product_category_name
+                    if product_brand:
+                        marque_bouteille = product_brand
+                    else:
+                        marque_bouteille = getattr(line.product, 'product_category_name', None)
+                        if not marque_bouteille:
+                            marque_bouteille = 'INCONNU'
+                        
                     key = (depositaire, marque_bouteille, societe, centre_emplisseur)
                     if key not in group_map:
                         group_map[key] = {
@@ -174,14 +196,39 @@ class SalamGazTabAdmin(admin.ModelAdmin):
                             'qte_bd_3kg': 0,
                             'qte_bd_6kg': 0,
                             'qte_bd_12kg': 0,
+                            'prix_3kg': 0,
+                            'prix_6kg': 0,
+                            'prix_12kg': 0,
                             'source_bcs': set(),
                         }
-                    if line.product_name and '3kg' in line.product_name.lower():
-                        group_map[key]['qte_bd_3kg'] += int(line.qty)
-                    elif line.product_name and '6kg' in line.product_name.lower():
-                        group_map[key]['qte_bd_6kg'] += int(line.qty)
-                    elif line.product_name and '12kg' in line.product_name.lower():
-                        group_map[key]['qte_bd_12kg'] += int(line.qty)
+                    
+                    # Extraction des quantités et prix
+                    if line.product_name:
+                        pname = line.product_name.lower()
+                        qty = int(line.qty) if line.qty is not None else 0
+                        prix = float(line.prix) if line.prix is not None else 0
+                        
+                        # Enregistre le prix si non nul, sinon cherche dans le produit
+                        if not prix and line.product_id:
+                            prod = ScrapProduct.objects.filter(id=line.product_id).first()
+                            if prod and prod.prix:
+                                prix = float(prod.prix)
+                        
+                        # Stocke la quantité et le prix selon le type de bouteille
+                        # Détection améliorée pour tous les types de bouteilles
+                        if any(marker in pname for marker in ['3kg', '3 kg']):
+                            group_map[key]['qte_bd_3kg'] += qty
+                            if prix > 0:  # Ne remplace que si le prix est valide
+                                group_map[key]['prix_3kg'] = prix
+                        elif any(marker in pname for marker in ['6kg', '6 kg']):
+                            group_map[key]['qte_bd_6kg'] += qty
+                            if prix > 0:
+                                group_map[key]['prix_6kg'] = prix
+                        elif any(marker in pname for marker in ['12kg', '12 kg']):
+                            group_map[key]['qte_bd_12kg'] += qty
+                            if prix > 0:
+                                group_map[key]['prix_12kg'] = prix
+                    
                     group_map[key]['source_bcs'].add(bc.pk)
             for k, data in group_map.items():
                 # Calcul du montant HT total (mt_bl) pour ce groupe, une seule fois par BC unique
@@ -205,29 +252,6 @@ class SalamGazTabAdmin(admin.ModelAdmin):
                         debug_user = user.codeclientSG if user else None
                         print(f"[EXPORT][DEBUG] Requête: {debug_query} -> Résultat: {debug_user}")
 
-                prix3kg = prix6kg = prix12kg = 0
-                for bc in ScrapDimagazBC.objects.filter(pk__in=data['source_bcs']):
-                    for line in bc.lines.all():
-                        pname = line.product_name.lower() if line.product_name else ''
-                        if '3kg' in pname:
-                            prix3kg = line.prix or 0
-                            if not prix3kg and line.product_id:
-                                # fallback ScrapProduct
-                                prod = ScrapProduct.objects.filter(id=line.product_id).first()
-                                if prod and prod.prix:
-                                    prix3kg = float(prod.prix)
-                        elif '6kg' in pname:
-                            prix6kg = line.prix or 0
-                            if not prix6kg and line.product_id:
-                                prod = ScrapProduct.objects.filter(id=line.product_id).first()
-                                if prod and prod.prix:
-                                    prix6kg = float(prod.prix)
-                        elif '12kg' in pname:
-                            prix12kg = line.prix or 0
-                            if not prix12kg and line.product_id:
-                                prod = ScrapProduct.objects.filter(id=line.product_id).first()
-                                if prod and prod.prix:
-                                    prix12kg = float(prod.prix)
                 ligne = SalamGazTabLigne.objects.create(
                     export=obj,
                     client=debug_user,
@@ -243,9 +267,9 @@ class SalamGazTabAdmin(admin.ModelAdmin):
                     mt_vers_virt=0,
                     ecart=0,
                     observation='',
-                    prix_3kg=prix3kg,
-                    prix_6kg=prix6kg,
-                    prix_12kg=prix12kg,
+                    prix_3kg=data['prix_3kg'],
+                    prix_6kg=data['prix_6kg'],
+                    prix_12kg=data['prix_12kg'],
                 )
                 ligne.source_bcs.set(data['source_bcs'])
                 lignes_total += 1

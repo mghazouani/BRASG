@@ -31,20 +31,31 @@ class SalamGazTabLigne(models.Model):
     mt_bl = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="MT BL")
     mt_vers_virt = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="MT VERS/VIRT")
     ecart = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Ecart")
-    prix_3kg = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Prix 3KG", blank=True, null=True)
-    prix_6kg = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Prix 6KG", blank=True, null=True)
-    prix_12kg = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Prix 12KG", blank=True, null=True)
+    prix_3kg = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Prix 3KG")
+    prix_6kg = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Prix 6KG")
+    prix_12kg = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Prix 12KG")
     observation = models.TextField(blank=True, verbose_name="Observation")
     source_bcs = models.ManyToManyField(
         'scrap_sga.ScrapDimagazBC',
         blank=True,
         verbose_name="BC(s) source",
-        help_text="Optionnel. Pour les lignes générées automatiquement : liste des BC à l'origine de cette ligne. Pour les ajouts manuels, peut être laissé vide."
+        help_text="Optionnel. Pour les lignes générées automatiquement : liste des BC à l'origine de cette ligne. Pour les ajouts manuels, peut être laissé vide."
     )
 
     def save(self, *args, **kwargs):
+        # Calcul automatique du tonnage à partir des quantités
+        self.tonnage = (self.qte_bd_3kg * 3) + (self.qte_bd_6kg * 6) + (self.qte_bd_12kg * 12)
+        
+        # Calcul automatique du montant BL si les prix sont définis
+        if not self.mt_bl or self.mt_bl == 0:
+            prix_3kg = self.prix_3kg or 0
+            prix_6kg = self.prix_6kg or 0
+            prix_12kg = self.prix_12kg or 0
+            self.mt_bl = (self.qte_bd_3kg * prix_3kg) + (self.qte_bd_6kg * prix_6kg) + (self.qte_bd_12kg * prix_12kg)
+        
         # Calcul automatique de l'écart à chaque sauvegarde
         self.ecart = (self.mt_vers_virt or 0) - (self.mt_bl or 0)
+        
         super().save(*args, **kwargs)
 
     class Meta:
