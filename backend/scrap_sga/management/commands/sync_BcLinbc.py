@@ -14,16 +14,22 @@ from django.forms.models import model_to_dict
 import socket
 import requests
 
-ODOO_URL = os.environ.get('ODOO_URL')
-ODOO_DB = os.environ.get('ODOO_DB')
-ODOO_USER = os.environ.get('ODOO_USER')
-ODOO_PASSWORD = os.environ.get('ODOO_PASSWORD')
+import datetime as dt_datetime
+from datetime import datetime
+import pytz
+
+def make_aware_utc(dt):
+    if dt is None:
+        return None
+    if dt.tzinfo is not None:
+        return dt
+    return pytz.UTC.localize(dt)
 
 def parse_odoo_datetime(dt_str):
     if not dt_str:
         return None
     dt = datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
-    return timezone.make_aware(dt, timezone.utc)
+    return make_aware_utc(dt)
 
 def to_bool(val):
     if isinstance(val, bool):
@@ -47,7 +53,7 @@ def send_discord_bc_notification(bc_obj):
     create_date = bc_obj.create_date
     maroc_tz = pytz.timezone('Africa/Casablanca')
     if create_date.tzinfo is None or create_date.tzinfo.utcoffset(create_date) is None:
-        create_date = pytz.utc.localize(create_date)
+        create_date = make_aware_utc(create_date)
     date_maroc = create_date.astimezone(maroc_tz)
     date_str = date_maroc.strftime('%d-%m-%Y %H:%M')
     message = (
@@ -61,6 +67,11 @@ def send_discord_bc_notification(bc_obj):
         requests.post(webhook_url, json={'content': message})
     except Exception as e:
         print(f"Erreur Discord BC : {e}")
+
+ODOO_URL = os.environ.get('ODOO_URL')
+ODOO_DB = os.environ.get('ODOO_DB')
+ODOO_USER = os.environ.get('ODOO_USER')
+ODOO_PASSWORD = os.environ.get('ODOO_PASSWORD')
 
 class Command(BaseCommand):
     help = 'Synchronise les BC et lignes BC depuis Odoo vers la base locale (anti-doublon, upsert)'
@@ -112,7 +123,8 @@ class Command(BaseCommand):
             last_sync = syncstate.last_sync
         else:
             # Date très ancienne par défaut
-            last_sync = datetime(2000, 1, 1, tzinfo=pytz.utc)
+            last_sync = datetime(2000, 1, 1)
+            last_sync = make_aware_utc(last_sync)
         self.stdout.write(self.style.NOTICE(f"Synchronisation incrémentale depuis {last_sync} (jusqu'à {now_sync})"))
         batch_size = options['batch_size']
         last = options['last']

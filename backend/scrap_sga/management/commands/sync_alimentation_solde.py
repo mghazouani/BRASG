@@ -21,6 +21,13 @@ def safe_str(val):
         return None
     return str(val)
 
+def make_aware_utc(dt):
+    if dt is None:
+        return None
+    if dt.tzinfo is not None:
+        return dt
+    return pytz.UTC.localize(dt)
+
 def send_discord_notification(obj):
     webhook_url = os.environ.get('DISCORD_WEBHOOK_SOLDE')
     if not webhook_url:
@@ -36,7 +43,7 @@ def send_discord_notification(obj):
         # Si la date n'est pas aware, la rendre UTC avant conversion
         create_date = obj.create_date
         if create_date.tzinfo is None or create_date.tzinfo.utcoffset(create_date) is None:
-            create_date = pytz.utc.localize(create_date)
+            create_date = make_aware_utc(create_date)
         date_maroc = create_date.astimezone(maroc_tz)
         date_str = date_maroc.strftime('%d-%m-%Y %H:%M')
 
