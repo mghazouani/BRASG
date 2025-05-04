@@ -151,11 +151,17 @@ class SalamGazTabAdmin(admin.ModelAdmin):
     search_fields = ("reference", "description")
     list_filter = ("date_export",)
     inlines = [SalamGazTabLigneInline]
-    fields = ("reference", "date_debut", "date_fin", "description")
-    readonly_fields = ("date_export",)
+    fields = ("reference", "date_export", "date_debut", "date_fin", "description")
+    readonly_fields = ("date_export", "reference")
     
     class Media:
         js = ('admin/js/ecart_live_update.js',)
+    
+    def get_readonly_fields(self, request, obj=None):
+        """Rend les champs date et référence non modifiables lors de l'édition"""
+        if obj:  # Si c'est une modification (pas une création)
+            return self.readonly_fields + ("date_debut", "date_fin")
+        return self.readonly_fields
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
