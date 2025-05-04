@@ -148,116 +148,61 @@
                     console.debug('[updateMtBlAndEcart] mt_bl=' + mt_bl + ', tonnage=' + tonnage);
                 }
 
-                function bindEcartListeners() {
-                    // Initialisation pour toutes les lignes existantes
-                    window.django.jQuery('tr.form-row, .form-row').each(function() {
-                        var $row = window.django.jQuery(this);
-                        // Stocke les prix initiaux comme data-attributes
-                        var $prix3Input = $row.find('input[name$="-prix_3kg"]');
-                        var $prix6Input = $row.find('input[name$="-prix_6kg"]');
-                        var $prix12Input = $row.find('input[name$="-prix_12kg"]');
-                        
-                        if ($prix3Input.length) {
-                            $row.attr('data-prix-3kg', $prix3Input.val() || '0');
-                        }
-                        if ($prix6Input.length) {
-                            $row.attr('data-prix-6kg', $prix6Input.val() || '0');
-                        }
-                        if ($prix12Input.length) {
-                            $row.attr('data-prix-12kg', $prix12Input.val() || '0');
-                        }
-                        
-                        // Calcul initial
-                        updateMtBlAndEcart($row);
-                        updateEcart($row);
-                    });
+                function attachEvents() {
+                    // Sélectionne toutes les lignes du formulaire
+                    var $rows = $('.dynamic-salamgaztabligne');
                     
-                    // Écoute les changements sur mt_vers_virt
-                    window.django.jQuery(document).on('input', 'input[name$="-mt_vers_virt"]', function() {
-                        var $row = window.django.jQuery(this).closest('tr.form-row, .form-row');
-                        updateEcart($row);
-                    });
-                    
-                    // Écoute les changements sur les quantités
-                    window.django.jQuery(document).on('input', 'input[name$="-qte_bd_3kg"], input[name$="-qte_bd_6kg"], input[name$="-qte_bd_12kg"]', function() {
-                        var $row = window.django.jQuery(this).closest('tr.form-row, .form-row');
-                        updateMtBlAndEcart($row);
-                    });
-                    
-                    // Écoute les changements sur les prix
-                    window.django.jQuery(document).on('input', 'input[name$="-prix_3kg"], input[name$="-prix_6kg"], input[name$="-prix_12kg"]', function() {
-                        var $row = window.django.jQuery(this).closest('tr.form-row, .form-row');
-                        var $input = window.django.jQuery(this);
-                        var fieldName = $input.attr('name');
+                    // Pour chaque ligne
+                    $rows.each(function() {
+                        var $row = $(this);
                         
-                        // Met à jour le data-attribute correspondant
-                        if (fieldName.indexOf('prix_3kg') !== -1) {
-                            $row.attr('data-prix-3kg', $input.val() || '0');
-                        } else if (fieldName.indexOf('prix_6kg') !== -1) {
-                            $row.attr('data-prix-6kg', $input.val() || '0');
-                        } else if (fieldName.indexOf('prix_12kg') !== -1) {
-                            $row.attr('data-prix-12kg', $input.val() || '0');
-                        }
-                        
-                        updateMtBlAndEcart($row);
-                    });
-                    
-                    // Gestion des nouvelles lignes ajoutées dynamiquement
-                    window.django.jQuery(document).on('formset:added', function(event, $row, formsetName) {
-                        if (!$row || !$row.length) {
-                            // Essaie de le retrouver à partir de l'event.target
-                            $row = window.django.jQuery(event.target).closest('tr.form-row, .form-row');
-                        }
-                        
-                        if ($row && $row.length) {
-                            // Stocke les prix initiaux
-                            var $prix3Input = $row.find('input[name$="-prix_3kg"]');
-                            var $prix6Input = $row.find('input[name$="-prix_6kg"]');
-                            var $prix12Input = $row.find('input[name$="-prix_12kg"]');
-                            
-                            if ($prix3Input.length) {
-                                $row.attr('data-prix-3kg', $prix3Input.val() || '0');
-                            }
-                            if ($prix6Input.length) {
-                                $row.attr('data-prix-6kg', $prix6Input.val() || '0');
-                            }
-                            if ($prix12Input.length) {
-                                $row.attr('data-prix-12kg', $prix12Input.val() || '0');
-                            }
-                            
-                            // Calcul initial
+                        // Attache les événements aux champs de quantité
+                        $row.find('input[name$="-qte_bd_3kg"], input[name$="-qte_bd_6kg"], input[name$="-qte_bd_12kg"]').on('input change', function() {
                             updateMtBlAndEcart($row);
+                        });
+                        
+                        // Attache les événements aux champs de prix
+                        $row.find('input[name$="-prix_3kg"], input[name$="-prix_6kg"], input[name$="-prix_12kg"]').on('input change', function() {
+                            updateMtBlAndEcart($row);
+                        });
+                        
+                        // Attache les événements au champ mt_vers_virt
+                        $row.find('input[name$="-mt_vers_virt"]').on('input change', function() {
                             updateEcart($row);
+                        });
+                        
+                        // Initialise les calculs pour cette ligne
+                        updateMtBlAndEcart($row);
+                    });
+                    
+                    // Attache un événement pour les nouvelles lignes ajoutées dynamiquement
+                    $(document).on('formset:added', function(event, $row, formsetName) {
+                        if (formsetName === 'salamgaztabligne_set') {
+                            // Attache les événements à la nouvelle ligne
+                            $row.find('input[name$="-qte_bd_3kg"], input[name$="-qte_bd_6kg"], input[name$="-qte_bd_12kg"]').on('input change', function() {
+                                updateMtBlAndEcart($row);
+                            });
                             
-                            // Attache les événements spécifiques à cette ligne
-                            $row.find('input[name$="-mt_vers_virt"]').on('input', function() {
+                            $row.find('input[name$="-prix_3kg"], input[name$="-prix_6kg"], input[name$="-prix_12kg"]').on('input change', function() {
+                                updateMtBlAndEcart($row);
+                            });
+                            
+                            $row.find('input[name$="-mt_vers_virt"]').on('input change', function() {
                                 updateEcart($row);
-                            });
-                            
-                            $row.find('input[name$="-qte_bd_3kg"], input[name$="-qte_bd_6kg"], input[name$="-qte_bd_12kg"]').on('input', function() {
-                                updateMtBlAndEcart($row);
-                            });
-                            
-                            $row.find('input[name$="-prix_3kg"], input[name$="-prix_6kg"], input[name$="-prix_12kg"]').on('input', function() {
-                                var $input = window.django.jQuery(this);
-                                var fieldName = $input.attr('name');
-                                
-                                if (fieldName.indexOf('prix_3kg') !== -1) {
-                                    $row.attr('data-prix-3kg', $input.val() || '0');
-                                } else if (fieldName.indexOf('prix_6kg') !== -1) {
-                                    $row.attr('data-prix-6kg', $input.val() || '0');
-                                } else if (fieldName.indexOf('prix_12kg') !== -1) {
-                                    $row.attr('data-prix-12kg', $input.val() || '0');
-                                }
-                                
-                                updateMtBlAndEcart($row);
                             });
                         }
                     });
                 }
-
+                
+                // Initialise les événements au chargement de la page
+                attachEvents();
+                
+                // Réinitialise les événements après un rechargement AJAX
+                $(document).on('formset:added', function() {
+                    setTimeout(attachEvents, 100);
+                });
+                
                 console.log('[ecart_live_update] JS chargé et prêt.');
-                bindEcartListeners();
             });
         } else {
             setTimeout(startWhenReady, 50);

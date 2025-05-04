@@ -4,7 +4,7 @@ from django.db import models
 
 class SalamGazTab(models.Model):
     # Exemple de champs, à adapter selon besoin métier
-    reference = models.CharField(max_length=100, verbose_name="Référence")
+    reference = models.CharField(max_length=100, blank=True, verbose_name="Référence")
     date_export = models.DateTimeField(auto_now_add=True, verbose_name="Date d'export")
     description = models.TextField(blank=True, verbose_name="Description")
     date_debut = models.DateTimeField("Date début période", null=True, blank=True, help_text="Date et heure de début pour la génération automatique des lignes.")

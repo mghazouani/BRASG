@@ -1,0 +1,103 @@
+{% extends "admin/change_form.html" %}
+
+{% block extrahead %}
+{{ block.super }}
+{{ inline_javascript|safe }}
+{% endblock %}
+
+{% block admin_change_form_document_ready %}
+{{ block.super }}
+<script type="text/javascript">
+(function($) {
+    // Fonction pour calculer le montant BL et le tonnage
+    function updateCalculations(row) {
+        // Récupérer les quantités
+        var qte3 = parseFloat($(row).find('input[name$="-qte_bd_3kg"]').val() || '0');
+        var qte6 = parseFloat($(row).find('input[name$="-qte_bd_6kg"]').val() || '0');
+        var qte12 = parseFloat($(row).find('input[name$="-qte_bd_12kg"]').val() || '0');
+        
+        // Récupérer les prix
+        var prix3 = parseFloat($(row).find('input[name$="-prix_3kg"]').val() || '0');
+        var prix6 = parseFloat($(row).find('input[name$="-prix_6kg"]').val() || '0');
+        var prix12 = parseFloat($(row).find('input[name$="-prix_12kg"]').val() || '0');
+        
+        // Calculer le montant BL
+        var mt_bl = (qte3 * prix3) + (qte6 * prix6) + (qte12 * prix12);
+        
+        // Calculer le tonnage
+        var tonnage = (qte3 * 3) + (qte6 * 6) + (qte12 * 12);
+        
+        // Mettre à jour les champs
+        $(row).find('input[name$="-mt_bl"]').val(mt_bl.toFixed(2));
+        $(row).find('td.field-mt_bl').html('<p>' + mt_bl.toFixed(2) + '</p>');
+        
+        $(row).find('input[name$="-tonnage"]').val(tonnage.toFixed(2));
+        $(row).find('td.field-tonnage').html('<p>' + tonnage.toFixed(2) + '</p>');
+        
+        // Calculer l'écart
+        var mt_vers_virt = parseFloat($(row).find('input[name$="-mt_vers_virt"]').val() || '0');
+        var ecart = mt_vers_virt - mt_bl;
+        
+        // Mettre à jour l'écart
+        $(row).find('input[name$="-ecart"]').val(ecart.toFixed(2));
+        
+        // Mettre à jour l'affichage de l'écart
+        var $ecartDisplay = $(row).find('.js-ecart-dyn');
+        if ($ecartDisplay.length) {
+            $ecartDisplay.text(ecart.toFixed(2)).css('color', ecart < 0 ? 'red' : (ecart > 0 ? 'green' : 'black'));
+        } else {
+            var $ecartCell = $(row).find('td.field-ecart');
+            if ($ecartCell.length) {
+                var color = ecart < 0 ? 'red' : (ecart > 0 ? 'green' : 'black');
+                $ecartCell.html('<span class="js-ecart-dyn" style="color:' + color + '">' + ecart.toFixed(2) + '</span>');
+            }
+        }
+        
+        console.log("Calculs mis à jour: mt_bl=" + mt_bl.toFixed(2) + ", tonnage=" + tonnage.toFixed(2) + ", ecart=" + ecart.toFixed(2));
+    }
+    
+    // Fonction pour attacher les événements à toutes les lignes
+    function attachEvents() {
+        $('.dynamic-salamgaztabligne, tr.form-row').each(function() {
+            var row = this;
+            
+            // Événements pour les quantités
+            $(row).find('input[name$="-qte_bd_3kg"], input[name$="-qte_bd_6kg"], input[name$="-qte_bd_12kg"]')
+                .off('input.calc').on('input.calc', function() {
+                    updateCalculations(row);
+                });
+            
+            // Événements pour les prix
+            $(row).find('input[name$="-prix_3kg"], input[name$="-prix_6kg"], input[name$="-prix_12kg"]')
+                .off('input.calc').on('input.calc', function() {
+                    updateCalculations(row);
+                });
+            
+            // Événement pour mt_vers_virt
+            $(row).find('input[name$="-mt_vers_virt"]')
+                .off('input.calc').on('input.calc', function() {
+                    updateCalculations(row);
+                });
+            
+            // Initialiser les calculs
+            updateCalculations(row);
+        });
+    }
+    
+    // Attacher les événements au chargement
+    $(document).ready(function() {
+        console.log("Initialisation des calculs en temps réel...");
+        setTimeout(attachEvents, 500);
+    });
+    
+    // Attacher les événements aux nouvelles lignes
+    $(document).on('formset:added', function(event, $row, formsetName) {
+        console.log("Nouvelle ligne ajoutée, formset:", formsetName);
+        setTimeout(attachEvents, 100);
+    });
+    
+    // Réattacher périodiquement pour s'assurer que tout fonctionne
+    setInterval(attachEvents, 2000);
+})(django.jQuery);
+</script>
+{% endblock %}

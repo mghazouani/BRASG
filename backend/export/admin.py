@@ -151,21 +151,146 @@ class SalamGazTabAdmin(admin.ModelAdmin):
     search_fields = ("reference", "description")
     list_filter = ("date_export",)
     inlines = [SalamGazTabLigneInline]
-    fields = ("reference", "date_export", "date_debut", "date_fin", "description")
+    fields = ("reference", "date_debut", "date_fin", "description")
     readonly_fields = ("date_export",)
+    
+    class Media:
+        js = ('admin/js/ecart_live_update.js',)
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
-        # Génération automatique des lignes si période renseignée
-        if obj.date_debut and obj.date_fin:
-            # Suppression des anciennes lignes
+        
+        # Initialiser une liste pour stocker les messages de log
+        log_messages = []
+        
+        # Fonction pour ajouter un log à la fois dans la console et dans la liste des messages
+        def add_log(message):
+            print(message)
+            log_messages.append(message)
+        
+        # Génération automatique des lignes seulement lors de la création initiale, pas lors des modifications
+        if obj.date_debut and obj.date_fin and not change:
+            # Suppression des anciennes lignes uniquement lors de la création initiale
             obj.lignes.all().delete()
-            from scrap_sga.models import ScrapDimagazBC
-            bcs = ScrapDimagazBC.objects.filter(bc_date__gte=obj.date_debut, bc_date__lte=obj.date_fin)
+            from scrap_sga.models import ScrapDimagazBC, ScrapUser
+            
+            # Vérification et log des dates
+            add_log(f"[EXPORT][DEBUG] Filtrage des BC entre {obj.date_debut} et {obj.date_fin}")
+            
+            # Conversion des dates en UTC pour le filtrage
+            from django.utils import timezone
+            import pytz
+            
+            # Définir la timezone de Casablanca
+            casablanca_tz = pytz.timezone('Africa/Casablanca')
+            
+            # Convertir les dates en UTC si elles ne le sont pas déjà
+            if obj.date_debut.tzinfo is None:
+                date_debut_utc = casablanca_tz.localize(obj.date_debut).astimezone(pytz.UTC)
+            else:
+                date_debut_utc = obj.date_debut.astimezone(pytz.UTC)
+                
+            if obj.date_fin.tzinfo is None:
+                date_fin_utc = casablanca_tz.localize(obj.date_fin).astimezone(pytz.UTC)
+            else:
+                date_fin_utc = obj.date_fin.astimezone(pytz.UTC)
+            
+            add_log(f"[EXPORT][DEBUG] Date début originale: {obj.date_debut}, convertie en UTC: {date_debut_utc}")
+            add_log(f"[EXPORT][DEBUG] Date fin originale: {obj.date_fin}, convertie en UTC: {date_fin_utc}")
+            
+            # Ajustement automatique de la date de fin pour inclure toute la journée
+            # Si la date de fin est dans la même journée que maintenant, étendre jusqu'à 23:59:59
+            now = timezone.now()
+            if date_fin_utc.date() == now.date():
+                # Étendre la date de fin jusqu'à la fin de la journée
+                from datetime import datetime, time
+                end_of_day = datetime.combine(date_fin_utc.date(), time(23, 59, 59))
+                end_of_day = pytz.UTC.localize(end_of_day)
+                date_fin_utc = end_of_day
+                add_log(f"[EXPORT][DEBUG] Date fin ajustée automatiquement à la fin de la journée: {date_fin_utc}")
+            
+            # Filtrage de base : exclure les BC sans dépositaire
+            bcs = ScrapDimagazBC.objects.filter(depositaire__isnull=False)
+            
+            # Appliquer le filtre de date
+            bcs = bcs.filter(bc_date__gte=date_debut_utc, bc_date__lte=date_fin_utc)
+            
+            # Initialisation du dictionnaire pour stocker les prix par défaut de chaque type de produit
+            default_prices = {
+                'DIMAGAZ': {'3kg': 0, '6kg': 0, '12kg': 0},
+                'ZERGAGAZ': {'3kg': 0, '6kg': 0, '12kg': 0},
+            }
+            
+            # Récupération des prix par défaut depuis ScrapProduct
+            from scrap_sga.models import ScrapProduct
+            
+            # Pour DIMAGAZ
+            for bottle_type in ['3kg', '6kg', '12kg']:
+                products = ScrapProduct.objects.filter(
+                    name__icontains='dimagaz'
+                ).filter(
+                    name__icontains=bottle_type
+                )
+                for product in products:
+                    if product.prix and product.prix > 0:
+                        default_prices['DIMAGAZ'][bottle_type] = float(product.prix)
+                        add_log(f"[EXPORT][DEBUG] Prix par défaut pour DIMAGAZ {bottle_type}: {default_prices['DIMAGAZ'][bottle_type]} (produit: {product.name})")
+                        break
+            
+            # Pour ZERGAGAZ
+            for bottle_type in ['3kg', '6kg', '12kg']:
+                products = ScrapProduct.objects.filter(
+                    name__icontains='zergagaz'
+                ).filter(
+                    name__icontains=bottle_type
+                )
+                for product in products:
+                    if product.prix and product.prix > 0:
+                        default_prices['ZERGAGAZ'][bottle_type] = float(product.prix)
+                        add_log(f"[EXPORT][DEBUG] Prix par défaut pour ZERGAGAZ {bottle_type}: {default_prices['ZERGAGAZ'][bottle_type]} (produit: {product.name})")
+                        break
+            
+            # Vérification des BC par dépositaire
+            depositaires_data = {}
+            for bc in bcs:
+                dep_id = bc.depositaire_id
+                if dep_id not in depositaires_data:
+                    user = ScrapUser.objects.filter(id=dep_id).first()
+                    name = user.display_name if user else f"ID:{dep_id}"
+                    depositaires_data[dep_id] = {
+                        "name": name,
+                        "count": 0,
+                        "bc_ids": []
+                    }
+                depositaires_data[dep_id]["count"] += 1
+                depositaires_data[dep_id]["bc_ids"].append(bc.id)
+            
+            # Log détaillé des dépositaires
+            for dep_id, data in depositaires_data.items():
+                add_log(f"[EXPORT][DEBUG] Dépositaire: {data['name']} (ID: {dep_id}) - {data['count']} BC(s) - IDs: {data['bc_ids'][:5]}{' et plus...' if len(data['bc_ids']) > 5 else ''}")
+            
+            # Vérification des BC spécifiques pour ALPHA
+            alpha_bcs = ScrapDimagazBC.objects.filter(
+                bc_date__gte=obj.date_debut, 
+                bc_date__lte=obj.date_fin,
+                depositaire__display_name__icontains="ALPHA"
+            )
+            if alpha_bcs.exists():
+                add_log(f"[EXPORT][DEBUG] BC pour ALPHA trouvés: {alpha_bcs.count()}")
+                for bc in alpha_bcs[:3]:  # Limiter à 3 pour éviter trop de logs
+                    add_log(f"[EXPORT][DEBUG] BC ALPHA: ID={bc.id}, Name={bc.name}, Date={bc.bc_date}")
+            else:
+                add_log(f"[EXPORT][DEBUG] Aucun BC pour ALPHA trouvé dans la période sélectionnée")
+            
             lignes_total = 0
             group_map = {}
             for bc in bcs:
                 for line in bc.lines.all():
+                    # Vérifier que le dépositaire existe
+                    if not bc.depositaire:
+                        add_log(f"[EXPORT][DEBUG] BC {bc.name} sans dépositaire, ignoré")
+                        continue
+                        
                     depositaire = bc.depositaire
                     societe = getattr(bc, 'fournisseur', None)
                     centre_emplisseur = getattr(bc, 'fournisseur_centre', None)
@@ -185,8 +310,11 @@ class SalamGazTabAdmin(admin.ModelAdmin):
                         marque_bouteille = getattr(line.product, 'product_category_name', None)
                         if not marque_bouteille:
                             marque_bouteille = 'INCONNU'
-                        
-                    key = (depositaire, marque_bouteille, societe, centre_emplisseur)
+                    
+                    # Utiliser l'ID du dépositaire dans la clé pour garantir l'unicité
+                    key = (depositaire.id if depositaire else None, marque_bouteille, 
+                           societe.id if societe else None, 
+                           centre_emplisseur.id if centre_emplisseur else None)
                     if key not in group_map:
                         group_map[key] = {
                             'depositaire': depositaire,
@@ -196,9 +324,9 @@ class SalamGazTabAdmin(admin.ModelAdmin):
                             'qte_bd_3kg': 0,
                             'qte_bd_6kg': 0,
                             'qte_bd_12kg': 0,
-                            'prix_3kg': 0,
-                            'prix_6kg': 0,
-                            'prix_12kg': 0,
+                            'prix_3kg': default_prices[marque_bouteille]['3kg'] if marque_bouteille in default_prices else 0,
+                            'prix_6kg': default_prices[marque_bouteille]['6kg'] if marque_bouteille in default_prices else 0,
+                            'prix_12kg': default_prices[marque_bouteille]['12kg'] if marque_bouteille in default_prices else 0,
                             'source_bcs': set(),
                         }
                     
@@ -208,23 +336,52 @@ class SalamGazTabAdmin(admin.ModelAdmin):
                         qty = int(line.qty) if line.qty is not None else 0
                         prix = float(line.prix) if line.prix is not None else 0
                         
-                        # Enregistre le prix si non nul, sinon cherche dans le produit
-                        if not prix and line.product_id:
-                            prod = ScrapProduct.objects.filter(id=line.product_id).first()
-                            if prod and prod.prix:
-                                prix = float(prod.prix)
+                        # Détermine le type de bouteille (3kg, 6kg ou 12kg)
+                        bottle_type = None
+                        if any(marker in pname for marker in ['3kg', '3 kg']):
+                            bottle_type = '3kg'
+                        elif any(marker in pname for marker in ['6kg', '6 kg']):
+                            bottle_type = '6kg'
+                        elif any(marker in pname for marker in ['12kg', '12 kg']):
+                            bottle_type = '12kg'
+                        
+                        # Si le prix n'est pas disponible dans la ligne BC, chercher dans ScrapProduct
+                        if not prix and bottle_type and line.product:
+                            from scrap_sga.models import ScrapProduct
+                            # Construire le pattern de recherche pour le produit correspondant
+                            search_terms = []
+                            
+                            # Ajouter la marque (DIMAGAZ ou ZERGAGAZ)
+                            if marque_bouteille in ['DIMAGAZ', 'ZERGAGAZ']:
+                                search_terms.append(marque_bouteille.lower())
+                            
+                            # Ajouter le type de bouteille
+                            search_terms.append(bottle_type)
+                            
+                            # Rechercher les produits correspondants
+                            matching_products = ScrapProduct.objects.filter(
+                                name__icontains=search_terms[0]
+                            ).filter(
+                                name__icontains=search_terms[1]
+                            )
+                            
+                            # Prendre le premier produit correspondant avec un prix
+                            for product in matching_products:
+                                if product.prix and product.prix > 0:
+                                    prix = float(product.prix)
+                                    add_log(f"[EXPORT][DEBUG] Prix récupéré de ScrapProduct pour {marque_bouteille} {bottle_type}: {prix} (produit: {product.name})")
+                                    break
                         
                         # Stocke la quantité et le prix selon le type de bouteille
-                        # Détection améliorée pour tous les types de bouteilles
-                        if any(marker in pname for marker in ['3kg', '3 kg']):
+                        if bottle_type == '3kg':
                             group_map[key]['qte_bd_3kg'] += qty
                             if prix > 0:  # Ne remplace que si le prix est valide
                                 group_map[key]['prix_3kg'] = prix
-                        elif any(marker in pname for marker in ['6kg', '6 kg']):
+                        elif bottle_type == '6kg':
                             group_map[key]['qte_bd_6kg'] += qty
                             if prix > 0:
                                 group_map[key]['prix_6kg'] = prix
-                        elif any(marker in pname for marker in ['12kg', '12 kg']):
+                        elif bottle_type == '12kg':
                             group_map[key]['qte_bd_12kg'] += qty
                             if prix > 0:
                                 group_map[key]['prix_12kg'] = prix
@@ -244,17 +401,26 @@ class SalamGazTabAdmin(admin.ModelAdmin):
                 codeclientSG = None
                 debug_query = None
                 debug_user = None
+                depositaire_name = None
+                
                 if data['source_bcs']:
                     first_bc = ScrapDimagazBC.objects.filter(pk__in=data['source_bcs']).first()
                     if first_bc and getattr(first_bc, 'depositaire_id', None):
                         debug_query = f"ScrapUser.objects.filter(id={first_bc.depositaire_id}).first()"
                         user = ScrapUser.objects.filter(id=first_bc.depositaire_id).first()
                         debug_user = user.codeclientSG if user else None
-                        print(f"[EXPORT][DEBUG] Requête: {debug_query} -> Résultat: {debug_user}")
-
+                        
+                        # Récupérer le nom du dépositaire pour l'affichage, même si codeclientSG est None
+                        if user:
+                            depositaire_name = user.display_name
+                            add_log(f"[EXPORT][DEBUG] Dépositaire trouvé: {depositaire_name} (codeclientSG: {debug_user})")
+                        else:
+                            add_log(f"[EXPORT][DEBUG] Utilisateur avec ID={first_bc.depositaire_id} non trouvé")
+                
+                # Créer la ligne même si codeclientSG est None
                 ligne = SalamGazTabLigne.objects.create(
                     export=obj,
-                    client=debug_user,
+                    client=debug_user,  # Peut être None
                     depositaire=data['depositaire'],
                     marque_bouteille=data['marque_bouteille'],
                     societe=data['societe'],
@@ -277,6 +443,14 @@ class SalamGazTabAdmin(admin.ModelAdmin):
                 self.message_user(request, f"{lignes_total} lignes générées automatiquement pour la période sélectionnée.", messages.SUCCESS)
             else:
                 self.message_user(request, "Aucune ligne générée pour la période sélectionnée.", messages.WARNING)
+            
+            # Afficher les logs dans l'interface d'administration
+            if log_messages:
+                self.message_user(
+                    request, 
+                    f"Logs de génération :<br>{'<br>'.join(log_messages)}", 
+                    level=messages.INFO
+                )
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == 'depositaire':
