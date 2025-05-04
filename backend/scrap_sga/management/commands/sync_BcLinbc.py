@@ -51,7 +51,7 @@ def send_discord_bc_notification(bc_obj):
     date_maroc = create_date.astimezone(maroc_tz)
     date_str = date_maroc.strftime('%d-%m-%Y %H:%M')
     message = (
-        f"📄 **Nouvelle commande créée !**\n\n"
+        f"📦 **Nouvelle commande créée !**\n\n"
         f"> **Dépositaire** : `{depositaire}`\n"
         f"> **Numéro BC** : `{bc_obj.name}`\n"
         f"> **Date Création** : `{date_str}`\n"
