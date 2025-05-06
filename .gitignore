@@ -39,3 +39,4 @@ Thumbs.db
 
 # celery
 backend/celerybeat-schedule.dat
+backend/celerybeat-schedule.dir
